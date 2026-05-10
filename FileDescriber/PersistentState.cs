@@ -5,6 +5,7 @@
 namespace ktsu.FileDescriber;
 
 using System.Collections.Generic;
+using System.Threading;
 
 using ktsu.AppDataStorage;
 using ktsu.Semantics.Strings;
@@ -12,9 +13,38 @@ using ktsu.Semantics.Strings;
 internal sealed class PersistentState : AppData<PersistentState>
 {
 	public Dictionary<string, FileDescription> Descriptions { get; set; } = [];
-	public OllamaEndpoint OllamaEndpoint { get; set; } = "https://ollama.local.ktsu.dev".As<OllamaEndpoint>();
+	public List<OllamaEndpoint> OllamaEndpoints { get; set; } = ["https://ollama.local.ktsu.dev".As<OllamaEndpoint>()];
 	public OllamaModelName OllamaModel { get; set; } = "gemma3:27b".As<OllamaModelName>();
 	public int MaxConcurrentRequests { get; set; } = 1;
+
+	private int _endpointRoundRobinIndex = -1;
+
+	internal OllamaEndpoint GetNextEndpoint()
+	{
+		int count = OllamaEndpoints.Count;
+		if (count == 0)
+		{
+			throw new InvalidOperationException("No Ollama endpoints are configured.");
+		}
+
+		int next = Interlocked.Increment(ref _endpointRoundRobinIndex);
+		return OllamaEndpoints[(int)((uint)next % (uint)count)];
+	}
+
+	internal static OllamaEndpoint GetNextEndpoint(IReadOnlyList<OllamaEndpoint> endpoints)
+	{
+		ArgumentNullException.ThrowIfNull(endpoints);
+		if (endpoints.Count == 0)
+		{
+			throw new InvalidOperationException("No Ollama endpoints are configured.");
+		}
+
+		// Thread-local incrementing counter for caller-supplied lists.
+		long next = Interlocked.Increment(ref s_sharedEndpointIndex);
+		return endpoints[(int)((ulong)next % (ulong)endpoints.Count)];
+	}
+
+	private static long s_sharedEndpointIndex = -1;
 
 	// Per-model, per-type description prompts.
 	// Outer key: model name (semantic type). Inner key: FileType enum. Value: typed prompt.

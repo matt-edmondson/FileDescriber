@@ -38,21 +38,41 @@ internal sealed class Scan : BaseVerb<Scan>
 	internal override void Run(Scan options)
 	{
 		Console.WriteLine($"Scanning: {options.Path}");
-		Console.WriteLine($"Endpoint: {options.Endpoint}");
+		Console.WriteLine($"Endpoint(s): {string.Join(", ", options.Endpoints)}");
 		Console.WriteLine($"Model: {options.Model}");
 		Console.WriteLine();
 
-		// Step 1: Check Ollama availability
-		Console.WriteLine("Checking Ollama availability...");
-		bool isAvailable = OllamaClient.IsAvailableAsync(options.Endpoint).GetAwaiter().GetResult();
-		if (!isAvailable)
+		// Step 1: Check Ollama availability across all endpoints
+		IReadOnlyList<OllamaEndpoint> endpoints = options.Endpoints;
+		if (endpoints.Count == 0)
 		{
-			Console.WriteLine($"Error: Ollama is not available at {options.Endpoint}");
-			Console.WriteLine("Make sure Ollama is running and the endpoint is correct.");
+			Console.WriteLine("Error: No Ollama endpoints configured. Use Configure or -e to specify at least one endpoint.");
 			return;
 		}
 
-		Console.WriteLine("Ollama is available.");
+		Console.WriteLine($"Checking Ollama availability ({endpoints.Count} endpoint(s))...");
+		List<OllamaEndpoint> availableEndpoints = [];
+		foreach (OllamaEndpoint ep in endpoints)
+		{
+			bool epAvailable = OllamaClient.IsAvailableAsync(ep).GetAwaiter().GetResult();
+			if (epAvailable)
+			{
+				Console.WriteLine($"  ✓ {ep}");
+				availableEndpoints.Add(ep);
+			}
+			else
+			{
+				Console.WriteLine($"  ✗ {ep} (unavailable — skipping)");
+			}
+		}
+
+		if (availableEndpoints.Count == 0)
+		{
+			Console.WriteLine("Error: No Ollama endpoints are available. Make sure Ollama is running and endpoints are correct.");
+			return;
+		}
+
+		Console.WriteLine($"Using {availableEndpoints.Count} available endpoint(s).");
 		Console.WriteLine();
 
 		// Step 2: Discover all supported files
@@ -129,7 +149,7 @@ internal sealed class Scan : BaseVerb<Scan>
 		Lock consoleLock = new();
 		Lock saveLock = new();
 
-		Console.WriteLine($"Processing with {maxConcurrency} concurrent request(s)...");
+		Console.WriteLine($"Processing with {maxConcurrency} concurrent request(s) across {availableEndpoints.Count} endpoint(s)...");
 		Console.WriteLine();
 
 		ParallelOptions parallelOptions = new() { MaxDegreeOfParallelism = maxConcurrency };
@@ -141,6 +161,7 @@ internal sealed class Scan : BaseVerb<Scan>
 			(string hash, (List<AbsoluteFilePath> paths, FileType fileType)) = (kvp.Key, kvp.Value);
 			AbsoluteFilePath filePath = paths[0];
 			int index = Interlocked.Increment(ref current);
+			OllamaEndpoint endpoint = PersistentState.GetNextEndpoint(availableEndpoints);
 
 			lock (consoleLock)
 			{
@@ -159,16 +180,16 @@ internal sealed class Scan : BaseVerb<Scan>
 				if (fileType == FileType.Image)
 				{
 					string fullPrompt = $"Known file paths for this image:\n{pathContext}\n\n{descriptionPrompt.WeakString}";
-					description = OllamaClient.DescribeImageAsync(options.Endpoint, options.Model, fullPrompt, filePath).GetAwaiter().GetResult();
+					description = OllamaClient.DescribeImageAsync(endpoint, options.Model, fullPrompt, filePath).GetAwaiter().GetResult();
 				}
 				else
 				{
 					string fullPrompt = $"Known file paths for this file:\n{pathContext}\n\n{descriptionPrompt.WeakString}";
-					description = OllamaClient.DescribeTextAsync(options.Endpoint, options.Model, fullPrompt, filePath).GetAwaiter().GetResult();
+					description = OllamaClient.DescribeTextAsync(endpoint, options.Model, fullPrompt, filePath).GetAwaiter().GetResult();
 				}
 
 				string combinedFileNamePrompt = $"File description: {description}\n\n{fileNamePrompt.WeakString}";
-				string rawSuggestion = OllamaClient.GenerateAsync(options.Endpoint, options.Model, combinedFileNamePrompt).GetAwaiter().GetResult();
+				string rawSuggestion = OllamaClient.GenerateAsync(endpoint, options.Model, combinedFileNamePrompt).GetAwaiter().GetResult();
 				FileName suggestedFileName = SanitizeFileName(rawSuggestion, filePath.FileExtension);
 
 				requestElapsed = DateTime.UtcNow - requestStart;
