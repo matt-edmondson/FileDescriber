@@ -133,6 +133,8 @@ internal sealed class Scan : BaseVerb<Scan>
 		Console.WriteLine();
 
 		ParallelOptions parallelOptions = new() { MaxDegreeOfParallelism = maxConcurrency };
+		DateTime jobStart = DateTime.UtcNow;
+		int completed = 0;
 
 		Parallel.ForEach(newHashPaths, parallelOptions, kvp =>
 		{
@@ -144,6 +146,9 @@ internal sealed class Scan : BaseVerb<Scan>
 			{
 				Console.WriteLine($"[{index}/{total}] Describing {filePath.FileName} ({fileType}, {paths.Count} copy/copies)...");
 			}
+
+			DateTime requestStart = DateTime.UtcNow;
+			TimeSpan requestElapsed = TimeSpan.Zero;
 
 			try
 			{
@@ -166,6 +171,8 @@ internal sealed class Scan : BaseVerb<Scan>
 				string rawSuggestion = OllamaClient.GenerateAsync(options.Endpoint, options.Model, combinedFileNamePrompt).GetAwaiter().GetResult();
 				FileName suggestedFileName = SanitizeFileName(rawSuggestion, filePath.FileExtension);
 
+				requestElapsed = DateTime.UtcNow - requestStart;
+
 				FileDescription entry = new()
 				{
 					Hash = hash,
@@ -184,17 +191,25 @@ internal sealed class Scan : BaseVerb<Scan>
 					Program.Settings.Save();
 				}
 
+				int doneCount = Interlocked.Increment(ref completed);
+				string eta = FormatEta(DateTime.UtcNow - jobStart, doneCount, total);
+
 				lock (consoleLock)
 				{
 					Console.WriteLine($"  [{index}/{total}] Suggested: {suggestedFileName}");
-					Console.WriteLine($"  [{index}/{total}] Done: {description[..Math.Min(80, description.Length)]}...");
+					Console.WriteLine($"  [{index}/{total}] Done in {FormatDuration(requestElapsed)} | ETA: {eta}");
+					Console.WriteLine($"  [{index}/{total}] {description[..Math.Min(80, description.Length)]}...");
 				}
 			}
 			catch (HttpRequestException ex)
 			{
+				requestElapsed = DateTime.UtcNow - requestStart;
+				int doneCount = Interlocked.Increment(ref completed);
+				string eta = FormatEta(DateTime.UtcNow - jobStart, doneCount, total);
+
 				lock (consoleLock)
 				{
-					Console.WriteLine($"  [{index}/{total}] Error describing {filePath.FileName}: {ex.Message}");
+					Console.WriteLine($"  [{index}/{total}] Error describing {filePath.FileName}: {ex.Message} ({FormatDuration(requestElapsed)}) | ETA: {eta}");
 				}
 			}
 		});
@@ -243,5 +258,38 @@ internal sealed class Scan : BaseVerb<Scan>
 		}
 
 		return $"{name}{extension}".As<FileName>();
+	}
+
+	private static string FormatDuration(TimeSpan duration)
+	{
+		if (duration.TotalHours >= 1)
+		{
+			return $"{(int)duration.TotalHours}h {duration.Minutes}m {duration.Seconds}s";
+		}
+
+		if (duration.TotalMinutes >= 1)
+		{
+			return $"{duration.Minutes}m {duration.Seconds}s";
+		}
+
+		return $"{duration.Seconds}.{duration.Milliseconds / 100}s";
+	}
+
+	private static string FormatEta(TimeSpan elapsed, int done, int totalCount)
+	{
+		if (done <= 0 || totalCount <= 0)
+		{
+			return "calculating...";
+		}
+
+		int remaining = totalCount - done;
+		if (remaining <= 0)
+		{
+			return "done";
+		}
+
+		TimeSpan avgPerItem = elapsed / done;
+		TimeSpan eta = avgPerItem * remaining;
+		return FormatDuration(eta);
 	}
 }
