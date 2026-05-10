@@ -20,9 +20,9 @@ Support for audio, video, and document files is planned — see the open issues.
 ## Prerequisites
 
 - [Ollama](https://ollama.com) running locally or on the network (defaults to `http://localhost:11434`).
-- A model installed in Ollama (default `llama3.2-vision` for images; any capable model works for text):
+- A model installed in Ollama (default `gemma3:27b`):
   ```bash
-  ollama pull llama3.2-vision
+  ollama pull gemma3:27b
   ollama serve
   ```
 - .NET 10 SDK.
@@ -77,8 +77,8 @@ FileDescriber Stats
 | Option | Long form | Effect |
 |---|---|---|
 | `-p` | `--path` | Directory to scan (`Scan`) or default path. |
-| `-e` | `--endpoint` | Ollama URL. Defaults to `http://localhost:11434`. |
-| `-m` | `--model` | Model name. Defaults to `llama3.2-vision`. |
+| `-e` | `--endpoint` | Ollama URL. Defaults to `https://ollama.local.ktsu.dev`. |
+| `-m` | `--model` | Model name. Defaults to `gemma3:27b`. |
 | `-q` | `--query` | Search query (`Search`). |
 | `-o` | `--output` | Export file path. The extension picks the format. |
 | `-i` | `--input` | Import file path. |
