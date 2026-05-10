@@ -15,7 +15,7 @@ using ktsu.Semantics.Paths;
 /// </summary>
 internal static class AiClient
 {
-	internal static Task<bool> IsAvailableAsync(OllamaEndpoint endpoint) =>
+	internal static Task<bool> IsAvailableAsync(AiEndpoint endpoint) =>
 		Program.Settings.BackendType switch
 		{
 			BackendType.OpenAi => OpenAiClient.IsAvailableAsync(endpoint, Program.Settings.ApiKey),
@@ -23,8 +23,8 @@ internal static class AiClient
 		};
 
 	internal static Task<string> DescribeImageAsync(
-		OllamaEndpoint endpoint,
-		OllamaModelName model,
+		AiEndpoint endpoint,
+		AiModelName model,
 		string prompt,
 		AbsoluteFilePath imagePath) =>
 		Program.Settings.BackendType switch
@@ -34,8 +34,8 @@ internal static class AiClient
 		};
 
 	internal static Task<string> DescribeTextAsync(
-		OllamaEndpoint endpoint,
-		OllamaModelName model,
+		AiEndpoint endpoint,
+		AiModelName model,
 		string prompt,
 		AbsoluteFilePath textPath) =>
 		Program.Settings.BackendType switch
@@ -45,8 +45,8 @@ internal static class AiClient
 		};
 
 	internal static Task<string> GenerateAsync(
-		OllamaEndpoint endpoint,
-		OllamaModelName model,
+		AiEndpoint endpoint,
+		AiModelName model,
 		string prompt) =>
 		Program.Settings.BackendType switch
 		{

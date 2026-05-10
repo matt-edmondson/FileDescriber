@@ -21,7 +21,7 @@ internal sealed class FileDescription
 	public List<AbsoluteFilePath> KnownPaths { get; set; } = [];
 	public string Description { get; set; } = string.Empty;
 	public FileName SuggestedFileName { get; set; } = string.Empty.As<FileName>();
-	public OllamaModelName Model { get; set; } = string.Empty.As<OllamaModelName>();
+	public AiModelName Model { get; set; } = string.Empty.As<AiModelName>();
 	public DateTime DescribedAt { get; set; } = DateTime.UtcNow;
 	public long FileSizeBytes { get; set; }
 	public FileType FileType { get; set; } = FileType.Image;

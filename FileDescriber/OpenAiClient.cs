@@ -29,7 +29,7 @@ internal static class OpenAiClient
 	/// <summary>
 	/// Checks availability by calling <c>GET /v1/models</c>.
 	/// </summary>
-	internal static async Task<bool> IsAvailableAsync(OllamaEndpoint endpoint, string apiKey)
+	internal static async Task<bool> IsAvailableAsync(AiEndpoint endpoint, string apiKey)
 	{
 		try
 		{
@@ -52,9 +52,9 @@ internal static class OpenAiClient
 	/// multipart user message containing the prompt and the image as a data URL.
 	/// </summary>
 	internal static async Task<string> DescribeImageAsync(
-		OllamaEndpoint endpoint,
+		AiEndpoint endpoint,
 		string apiKey,
-		OllamaModelName model,
+		AiModelName model,
 		string prompt,
 		AbsoluteFilePath imagePath)
 	{
@@ -90,9 +90,9 @@ internal static class OpenAiClient
 	/// The file content is appended to the prompt inside the user message.
 	/// </summary>
 	internal static async Task<string> DescribeTextAsync(
-		OllamaEndpoint endpoint,
+		AiEndpoint endpoint,
 		string apiKey,
-		OllamaModelName model,
+		AiModelName model,
 		string prompt,
 		AbsoluteFilePath textPath)
 	{
@@ -116,9 +116,9 @@ internal static class OpenAiClient
 	/// Sends an arbitrary text prompt and returns the model's reply.
 	/// </summary>
 	internal static async Task<string> GenerateAsync(
-		OllamaEndpoint endpoint,
+		AiEndpoint endpoint,
 		string apiKey,
-		OllamaModelName model,
+		AiModelName model,
 		string prompt)
 	{
 		OpenAiTextRequest request = new()
@@ -137,7 +137,7 @@ internal static class OpenAiClient
 
 	// -------------------------------------------------------------------------
 
-	private static async Task<string> SendAsync(OllamaEndpoint endpoint, string apiKey, string jsonBody)
+	private static async Task<string> SendAsync(AiEndpoint endpoint, string apiKey, string jsonBody)
 	{
 		using StringContent body = new(jsonBody, Encoding.UTF8, "application/json");
 		using HttpRequestMessage req = BuildRequest(HttpMethod.Post, endpoint, "/v1/chat/completions", apiKey, body);
@@ -154,7 +154,7 @@ internal static class OpenAiClient
 
 	private static HttpRequestMessage BuildRequest(
 		HttpMethod method,
-		OllamaEndpoint endpoint,
+		AiEndpoint endpoint,
 		string path,
 		string apiKey,
 		HttpContent? content)

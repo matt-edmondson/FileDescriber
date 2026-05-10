@@ -24,11 +24,11 @@ internal sealed class Configure : BaseVerb<Configure>
 		ConfigureEndpoints();
 
 		Console.WriteLine();
-		Console.Write($"Model [{Program.Settings.OllamaModel}]: ");
+		Console.Write($"Model [{Program.Settings.AiModel}]: ");
 		string? modelInput = Console.ReadLine();
 		if (!string.IsNullOrWhiteSpace(modelInput))
 		{
-			Program.Settings.OllamaModel = modelInput.Trim().As<OllamaModelName>();
+			Program.Settings.AiModel = modelInput.Trim().As<AiModelName>();
 		}
 
 		Console.Write($"Max Concurrent Requests [{Program.Settings.MaxConcurrentRequests}]: ");
@@ -41,7 +41,7 @@ internal sealed class Configure : BaseVerb<Configure>
 		}
 
 		// --- Per-model, per-type prompts for the current model ---
-		OllamaModelName currentModel = Program.Settings.OllamaModel;
+		AiModelName currentModel = Program.Settings.AiModel;
 		Console.WriteLine();
 		Console.WriteLine($"Description prompts for model '{currentModel}'");
 		Console.WriteLine("(Press Enter to keep the current value. Effective value shown in brackets.)");
@@ -119,9 +119,9 @@ internal sealed class Configure : BaseVerb<Configure>
 	private static void ConfigureEndpoints()
 	{
 		Console.WriteLine("Endpoints (current):");
-		for (int i = 0; i < Program.Settings.OllamaEndpoints.Count; i++)
+		for (int i = 0; i < Program.Settings.AiEndpoints.Count; i++)
 		{
-			Console.WriteLine($"  [{i + 1}] {Program.Settings.OllamaEndpoints[i]}");
+			Console.WriteLine($"  [{i + 1}] {Program.Settings.AiEndpoints[i]}");
 		}
 
 		Console.WriteLine();
@@ -132,32 +132,32 @@ internal sealed class Configure : BaseVerb<Configure>
 		string? addEndpoint = Console.ReadLine();
 		while (!string.IsNullOrWhiteSpace(addEndpoint))
 		{
-			Program.Settings.OllamaEndpoints.Add(addEndpoint.Trim().As<OllamaEndpoint>());
+			Program.Settings.AiEndpoints.Add(addEndpoint.Trim().As<AiEndpoint>());
 			Console.Write("Add another endpoint (Enter to skip): ");
 			addEndpoint = Console.ReadLine();
 		}
 
-		if (Program.Settings.OllamaEndpoints.Count > 1)
+		if (Program.Settings.AiEndpoints.Count > 1)
 		{
 			Console.Write("Remove endpoint by number (Enter to skip): ");
 			string? removeInput = Console.ReadLine();
 			while (!string.IsNullOrWhiteSpace(removeInput) &&
 				int.TryParse(removeInput.Trim(), out int removeIndex) &&
-				removeIndex >= 1 && removeIndex <= Program.Settings.OllamaEndpoints.Count)
+				removeIndex >= 1 && removeIndex <= Program.Settings.AiEndpoints.Count)
 			{
-				OllamaEndpoint removed = Program.Settings.OllamaEndpoints[removeIndex - 1];
-				Program.Settings.OllamaEndpoints.RemoveAt(removeIndex - 1);
-				if (Program.Settings.OllamaEndpoints.Count == 0)
+				AiEndpoint removed = Program.Settings.AiEndpoints[removeIndex - 1];
+				Program.Settings.AiEndpoints.RemoveAt(removeIndex - 1);
+				if (Program.Settings.AiEndpoints.Count == 0)
 				{
 					Console.WriteLine("Warning: at least one endpoint is required. Restored the removed entry.");
-					Program.Settings.OllamaEndpoints.Add(removed);
+					Program.Settings.AiEndpoints.Add(removed);
 					break;
 				}
 
 				Console.WriteLine("Remaining endpoints:");
-				for (int i = 0; i < Program.Settings.OllamaEndpoints.Count; i++)
+				for (int i = 0; i < Program.Settings.AiEndpoints.Count; i++)
 				{
-					Console.WriteLine($"  [{i + 1}] {Program.Settings.OllamaEndpoints[i]}");
+					Console.WriteLine($"  [{i + 1}] {Program.Settings.AiEndpoints[i]}");
 				}
 
 				Console.Write("Remove another endpoint by number (Enter to stop): ");
@@ -168,7 +168,7 @@ internal sealed class Configure : BaseVerb<Configure>
 
 	private static void PrintSettings()
 	{
-		OllamaModelName model = Program.Settings.OllamaModel;
+		AiModelName model = Program.Settings.AiModel;
 
 		Console.WriteLine("Current Settings:");
 		Console.WriteLine($"  Backend:         {Program.Settings.BackendType}");
@@ -182,7 +182,7 @@ internal sealed class Configure : BaseVerb<Configure>
 		}
 
 		Console.WriteLine($"  Endpoint(s):");
-		foreach (OllamaEndpoint ep in Program.Settings.OllamaEndpoints)
+		foreach (AiEndpoint ep in Program.Settings.AiEndpoints)
 		{
 			Console.WriteLine($"    {ep}");
 		}

@@ -12,8 +12,8 @@ using ktsu.Semantics.Strings;
 internal sealed class PersistentState : AppData<PersistentState>
 {
 	public Dictionary<string, FileDescription> Descriptions { get; set; } = [];
-	public List<OllamaEndpoint> OllamaEndpoints { get; set; } = ["https://ollama.local.ktsu.dev".As<OllamaEndpoint>()];
-	public OllamaModelName OllamaModel { get; set; } = "gemma3:27b".As<OllamaModelName>();
+	public List<AiEndpoint> AiEndpoints { get; set; } = ["https://ollama.local.ktsu.dev".As<AiEndpoint>()];
+	public AiModelName AiModel { get; set; } = "gemma3:27b".As<AiModelName>();
 	public int MaxConcurrentRequests { get; set; } = 1;
 
 	/// <summary>
@@ -36,9 +36,9 @@ internal sealed class PersistentState : AppData<PersistentState>
 	// Per-model, per-type description prompts.
 	// Outer key: model name (semantic type). Inner key: FileType enum. Value: typed prompt.
 	// When a model+type entry is absent the built-in defaults below are used.
-	public Dictionary<OllamaModelName, Dictionary<FileType, DescriptionPrompt>> DescriptionPrompts { get; set; } = new()
+	public Dictionary<AiModelName, Dictionary<FileType, DescriptionPrompt>> DescriptionPrompts { get; set; } = new()
 	{
-		["gemma3:27b".As<OllamaModelName>()] = new()
+		["gemma3:27b".As<AiModelName>()] = new()
 		{
 			[FileType.Image] =
 				(
@@ -60,9 +60,9 @@ internal sealed class PersistentState : AppData<PersistentState>
 	// Per-model filename suggestion prompts.
 	// Key: model name (semantic type). Value: typed prompt.
 	// When a model entry is absent DefaultFileNamePrompt is used.
-	public Dictionary<OllamaModelName, FileNamePrompt> FileNamePrompts { get; set; } = new()
+	public Dictionary<AiModelName, FileNamePrompt> FileNamePrompts { get; set; } = new()
 	{
-		["gemma3:27b".As<OllamaModelName>()] =
+		["gemma3:27b".As<AiModelName>()] =
 			(
 				"Based on the description above, output a single filename stem. " +
 				"Use only lowercase letters, digits, and hyphens. " +
@@ -109,7 +109,7 @@ internal sealed class PersistentState : AppData<PersistentState>
 	// Lookup helpers — prefer model-specific, fall back to built-in defaults.
 	// -------------------------------------------------------------------------
 
-	internal DescriptionPrompt GetDescriptionPrompt(OllamaModelName model, FileType fileType)
+	internal DescriptionPrompt GetDescriptionPrompt(AiModelName model, FileType fileType)
 	{
 		if (DescriptionPrompts.TryGetValue(model, out Dictionary<FileType, DescriptionPrompt>? typeDict) &&
 			typeDict.TryGetValue(fileType, out DescriptionPrompt? prompt) &&
@@ -121,7 +121,7 @@ internal sealed class PersistentState : AppData<PersistentState>
 		return GetDefaultDescriptionPrompt(fileType);
 	}
 
-	internal FileNamePrompt GetFileNamePrompt(OllamaModelName model)
+	internal FileNamePrompt GetFileNamePrompt(AiModelName model)
 	{
 		if (FileNamePrompts.TryGetValue(model, out FileNamePrompt? prompt) &&
 			!string.IsNullOrWhiteSpace(prompt.WeakString))
@@ -132,7 +132,7 @@ internal sealed class PersistentState : AppData<PersistentState>
 		return DefaultFileNamePrompt;
 	}
 
-	internal void SetDescriptionPrompt(OllamaModelName model, FileType fileType, DescriptionPrompt prompt)
+	internal void SetDescriptionPrompt(AiModelName model, FileType fileType, DescriptionPrompt prompt)
 	{
 		if (!DescriptionPrompts.TryGetValue(model, out Dictionary<FileType, DescriptionPrompt>? typeDict))
 		{
@@ -143,6 +143,6 @@ internal sealed class PersistentState : AppData<PersistentState>
 		typeDict[fileType] = prompt;
 	}
 
-	internal void SetFileNamePrompt(OllamaModelName model, FileNamePrompt prompt) =>
+	internal void SetFileNamePrompt(AiModelName model, FileNamePrompt prompt) =>
 		FileNamePrompts[model] = prompt;
 }

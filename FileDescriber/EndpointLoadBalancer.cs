@@ -11,11 +11,11 @@ using System.Collections.Generic;
 // requests, so a slow endpoint cannot monopolise the concurrency budget.
 internal sealed class EndpointLoadBalancer
 {
-	private readonly IReadOnlyList<OllamaEndpoint> _endpoints;
+	private readonly IReadOnlyList<AiEndpoint> _endpoints;
 	private readonly int[] _activeCounts;
 	private readonly Lock _lock = new();
 
-	internal EndpointLoadBalancer(IReadOnlyList<OllamaEndpoint> endpoints)
+	internal EndpointLoadBalancer(IReadOnlyList<AiEndpoint> endpoints)
 	{
 		_endpoints = endpoints;
 		_activeCounts = new int[endpoints.Count];
@@ -23,7 +23,7 @@ internal sealed class EndpointLoadBalancer
 
 	// Returns the index and endpoint of the least-loaded endpoint, atomically incrementing its active count.
 	// Call Release with the returned index when the request completes.
-	internal (int Index, OllamaEndpoint Endpoint) Acquire()
+	internal (int Index, AiEndpoint Endpoint) Acquire()
 	{
 		lock (_lock)
 		{
@@ -57,5 +57,5 @@ internal sealed class EndpointLoadBalancer
 		}
 	}
 
-	internal OllamaEndpoint this[int index] => _endpoints[index];
+	internal AiEndpoint this[int index] => _endpoints[index];
 }

@@ -29,12 +29,12 @@ internal abstract class BaseVerb : ICommand
 
 	internal AbsoluteDirectoryPath Path => System.IO.Path.GetFullPath(PathString).As<AbsoluteDirectoryPath>();
 
-	internal IReadOnlyList<OllamaEndpoint> Endpoints =>
+	internal IReadOnlyList<AiEndpoint> Endpoints =>
 		EndpointStrings.Any()
-			? [.. EndpointStrings.Select(e => e.As<OllamaEndpoint>())]
-			: Program.Settings.OllamaEndpoints;
+			? [.. EndpointStrings.Select(e => e.As<AiEndpoint>())]
+			: Program.Settings.AiEndpoints;
 
-	internal OllamaModelName Model => string.IsNullOrEmpty(ModelString) ? Program.Settings.OllamaModel : ModelString.As<OllamaModelName>();
+	internal AiModelName Model => string.IsNullOrEmpty(ModelString) ? Program.Settings.AiModel : ModelString.As<AiModelName>();
 
 	public abstract void Run();
 
