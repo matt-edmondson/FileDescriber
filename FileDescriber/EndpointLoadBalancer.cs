@@ -21,9 +21,9 @@ internal sealed class EndpointLoadBalancer
 		_activeCounts = new int[endpoints.Count];
 	}
 
-	// Returns the index of the least-loaded endpoint and atomically increments its active count.
-	// Call Release with the same index when the request completes.
-	internal int Acquire()
+	// Returns the index and endpoint of the least-loaded endpoint, atomically incrementing its active count.
+	// Call Release with the returned index when the request completes.
+	internal (int Index, OllamaEndpoint Endpoint) Acquire()
 	{
 		lock (_lock)
 		{
@@ -40,7 +40,7 @@ internal sealed class EndpointLoadBalancer
 			}
 
 			_activeCounts[minIndex]++;
-			return minIndex;
+			return (minIndex, _endpoints[minIndex]);
 		}
 	}
 
@@ -50,7 +50,10 @@ internal sealed class EndpointLoadBalancer
 	{
 		lock (_lock)
 		{
-			_activeCounts[index]--;
+			if (_activeCounts[index] > 0)
+			{
+				_activeCounts[index]--;
+			}
 		}
 	}
 

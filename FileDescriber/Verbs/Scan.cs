@@ -179,8 +179,7 @@ internal sealed class Scan : BaseVerb<Scan>
 			int index = Interlocked.Increment(ref current);
 
 			// Pick the least-loaded endpoint for this request.
-			int endpointIndex = balancer.Acquire();
-			OllamaEndpoint endpoint = balancer[endpointIndex];
+			(int endpointIndex, OllamaEndpoint endpoint) = balancer.Acquire();
 
 			lock (consoleLock)
 			{
