@@ -1,4 +1,0 @@
-<Solution>
-  <Project Path="ImageDescriber/ImageDescriber.csproj" />
-  <Project Path="ImageDescriber.Test/ImageDescriber.Test.csproj" />
-</Solution>

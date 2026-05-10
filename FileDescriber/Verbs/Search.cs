@@ -2,7 +2,7 @@
 // All rights reserved.
 // Licensed under the MIT license.
 
-namespace ktsu.ImageDescriber.Verbs;
+namespace ktsu.FileDescriber.Verbs;
 
 using System.Collections.Generic;
 using System.Linq;
@@ -11,7 +11,7 @@ using CommandLine;
 
 using ktsu.Semantics.Paths;
 
-[Verb("Search", HelpText = "Search image descriptions by keyword.")]
+[Verb("Search", HelpText = "Search file descriptions by keyword.")]
 internal sealed class Search : BaseVerb<Search>
 {
 	[Option('q', "query", Required = true, HelpText = "The search query to find in descriptions.")]
@@ -25,9 +25,9 @@ internal sealed class Search : BaseVerb<Search>
 			return;
 		}
 
-		Dictionary<string, ImageDescription> descriptions = Program.Settings.Descriptions;
+		Dictionary<string, FileDescription> descriptions = Program.Settings.Descriptions;
 
-		ImageDescription[] matches = [.. descriptions
+		FileDescription[] matches = [.. descriptions
 			.Where(kvp => kvp.Value.Description.Contains(options.Query, StringComparison.OrdinalIgnoreCase)
 				|| kvp.Value.KnownPaths.Any(p => p.FileName.Contains(options.Query, StringComparison.OrdinalIgnoreCase)))
 			.OrderByDescending(kvp => kvp.Value.DescribedAt)
@@ -36,9 +36,10 @@ internal sealed class Search : BaseVerb<Search>
 		Console.WriteLine($"Search results for \"{options.Query}\": {matches.Length} match(es)");
 		Console.WriteLine();
 
-		foreach (ImageDescription desc in matches)
+		foreach (FileDescription desc in matches)
 		{
 			Console.WriteLine($"  Suggested: {desc.SuggestedFileName}");
+			Console.WriteLine($"  Type: {desc.FileType}");
 			Console.WriteLine($"  Hash: {desc.Hash[..12]}...");
 			Console.WriteLine($"  Date: {desc.DescribedAt:yyyy-MM-dd HH:mm:ss} UTC");
 			Console.WriteLine($"  Paths ({desc.KnownPaths.Count}):");

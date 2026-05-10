@@ -2,7 +2,7 @@
 // All rights reserved.
 // Licensed under the MIT license.
 
-namespace ktsu.ImageDescriber.Verbs;
+namespace ktsu.FileDescriber.Verbs;
 
 using System.Collections.Generic;
 using System.IO;
@@ -32,7 +32,7 @@ internal sealed class Export : BaseVerb<Export>
 
 	internal override void Run(Export options)
 	{
-		Dictionary<string, ImageDescription> descriptions = Program.Settings.Descriptions;
+		Dictionary<string, FileDescription> descriptions = Program.Settings.Descriptions;
 
 		if (descriptions.Count == 0)
 		{
@@ -58,24 +58,24 @@ internal sealed class Export : BaseVerb<Export>
 		Console.WriteLine($"Exported {descriptions.Count} description(s) to {outputFile}");
 	}
 
-	private static void ExportJson(AbsoluteFilePath outputPath, Dictionary<string, ImageDescription> descriptions)
+	private static void ExportJson(AbsoluteFilePath outputPath, Dictionary<string, FileDescription> descriptions)
 	{
-		ImageDescription[] entries = [.. descriptions.Values];
+		FileDescription[] entries = [.. descriptions.Values];
 		string json = JsonSerializer.Serialize(entries, JsonOptions);
 		File.WriteAllText(outputPath.WeakString, json, Encoding.UTF8);
 	}
 
-	private static void ExportCsv(AbsoluteFilePath outputPath, Dictionary<string, ImageDescription> descriptions)
+	private static void ExportCsv(AbsoluteFilePath outputPath, Dictionary<string, FileDescription> descriptions)
 	{
 		StringBuilder sb = new();
-		sb.AppendLine("Hash,SuggestedFileName,KnownPaths,Model,DescribedAt,FileSizeBytes,Description");
+		sb.AppendLine("Hash,FileType,SuggestedFileName,KnownPaths,Model,DescribedAt,FileSizeBytes,Description");
 
-		foreach (ImageDescription desc in descriptions.Values)
+		foreach (FileDescription desc in descriptions.Values)
 		{
 			string escapedDescription = $"\"{desc.Description.Replace("\"", "\"\"", StringComparison.Ordinal)}\"";
 			string joinedPaths = string.Join("; ", desc.KnownPaths.Select(p => p.WeakString));
 			string escapedPaths = $"\"{joinedPaths.Replace("\"", "\"\"", StringComparison.Ordinal)}\"";
-			sb.AppendLine($"{desc.Hash},{desc.SuggestedFileName},{escapedPaths},{desc.Model},{desc.DescribedAt:O},{desc.FileSizeBytes},{escapedDescription}");
+			sb.AppendLine($"{desc.Hash},{desc.FileType},{desc.SuggestedFileName},{escapedPaths},{desc.Model},{desc.DescribedAt:O},{desc.FileSizeBytes},{escapedDescription}");
 		}
 
 		File.WriteAllText(outputPath.WeakString, sb.ToString(), Encoding.UTF8);

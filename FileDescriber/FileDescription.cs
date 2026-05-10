@@ -2,14 +2,20 @@
 // All rights reserved.
 // Licensed under the MIT license.
 
-namespace ktsu.ImageDescriber;
+namespace ktsu.FileDescriber;
 
 using System.Collections.Generic;
 
 using ktsu.Semantics.Paths;
 using ktsu.Semantics.Strings;
 
-internal sealed class ImageDescription
+internal enum FileType
+{
+	Image,
+	Text,
+}
+
+internal sealed class FileDescription
 {
 	public string Hash { get; set; } = string.Empty;
 	public List<AbsoluteFilePath> KnownPaths { get; set; } = [];
@@ -18,4 +24,5 @@ internal sealed class ImageDescription
 	public OllamaModelName Model { get; set; } = string.Empty.As<OllamaModelName>();
 	public DateTime DescribedAt { get; set; } = DateTime.UtcNow;
 	public long FileSizeBytes { get; set; }
+	public FileType FileType { get; set; } = FileType.Image;
 }

@@ -2,7 +2,7 @@
 // All rights reserved.
 // Licensed under the MIT license.
 
-namespace ktsu.ImageDescriber.Verbs;
+namespace ktsu.FileDescriber.Verbs;
 
 using System.Collections.Generic;
 using System.Linq;
@@ -14,9 +14,9 @@ internal sealed class Stats : BaseVerb<Stats>
 {
 	internal override void Run(Stats options)
 	{
-		Dictionary<string, ImageDescription> descriptions = Program.Settings.Descriptions;
+		Dictionary<string, FileDescription> descriptions = Program.Settings.Descriptions;
 
-		Console.WriteLine("=== ImageDescriber Database Statistics ===");
+		Console.WriteLine("=== FileDescriber Database Statistics ===");
 		Console.WriteLine();
 		Console.WriteLine($"Total descriptions: {descriptions.Count}");
 
@@ -29,13 +29,26 @@ internal sealed class Stats : BaseVerb<Stats>
 		Console.WriteLine($"Total file size: {FormatBytes(totalSize)}");
 		Console.WriteLine();
 
+		// File type breakdown
+		IGrouping<FileType, FileDescription>[] typeGroups = [.. descriptions.Values
+			.GroupBy(d => d.FileType)
+			.OrderByDescending(g => g.Count())];
+
+		Console.WriteLine("File types:");
+		foreach (IGrouping<FileType, FileDescription> group in typeGroups)
+		{
+			Console.WriteLine($"  {group.Key}: {group.Count()} description(s)");
+		}
+
+		Console.WriteLine();
+
 		// Models used
-		IGrouping<OllamaModelName, ImageDescription>[] modelGroups = [.. descriptions.Values
+		IGrouping<OllamaModelName, FileDescription>[] modelGroups = [.. descriptions.Values
 			.GroupBy(d => d.Model)
 			.OrderByDescending(g => g.Count())];
 
 		Console.WriteLine("Models used:");
-		foreach (IGrouping<OllamaModelName, ImageDescription> group in modelGroups)
+		foreach (IGrouping<OllamaModelName, FileDescription> group in modelGroups)
 		{
 			Console.WriteLine($"  {group.Key}: {group.Count()} description(s)");
 		}
@@ -52,11 +65,11 @@ internal sealed class Stats : BaseVerb<Stats>
 
 		// Path statistics
 		int totalPaths = descriptions.Values.Sum(d => d.KnownPaths.Count);
-		int duplicateImages = descriptions.Values.Count(d => d.KnownPaths.Count > 1);
+		int duplicateFiles = descriptions.Values.Count(d => d.KnownPaths.Count > 1);
 		Console.WriteLine($"Total known paths: {totalPaths}");
-		if (duplicateImages > 0)
+		if (duplicateFiles > 0)
 		{
-			Console.WriteLine($"Images found at multiple paths: {duplicateImages}");
+			Console.WriteLine($"Files found at multiple paths: {duplicateFiles}");
 		}
 
 		Console.WriteLine();

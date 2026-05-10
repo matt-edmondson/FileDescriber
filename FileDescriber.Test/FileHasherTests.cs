@@ -2,13 +2,13 @@
 // All rights reserved.
 // Licensed under the MIT license.
 
-namespace ktsu.ImageDescriber.Tests;
+namespace ktsu.FileDescriber.Tests;
 
 using ktsu.Semantics.Paths;
 using ktsu.Semantics.Strings;
 
 [TestClass]
-public class ImageHasherTests
+public class FileHasherTests
 {
 	[TestMethod]
 	public void ComputeHashReturnsSameHashForSameContent()
@@ -24,8 +24,8 @@ public class ImageHasherTests
 			File.WriteAllBytes(file1, content);
 			File.WriteAllBytes(file2, content);
 
-			string hash1 = ImageHasher.ComputeHash(file1.As<AbsoluteFilePath>());
-			string hash2 = ImageHasher.ComputeHash(file2.As<AbsoluteFilePath>());
+			string hash1 = FileHasher.ComputeHash(file1.As<AbsoluteFilePath>());
+			string hash2 = FileHasher.ComputeHash(file2.As<AbsoluteFilePath>());
 
 			Assert.AreEqual(hash1, hash2);
 		}
@@ -48,8 +48,8 @@ public class ImageHasherTests
 			File.WriteAllBytes(file1, [1, 2, 3]);
 			File.WriteAllBytes(file2, [4, 5, 6]);
 
-			string hash1 = ImageHasher.ComputeHash(file1.As<AbsoluteFilePath>());
-			string hash2 = ImageHasher.ComputeHash(file2.As<AbsoluteFilePath>());
+			string hash1 = FileHasher.ComputeHash(file1.As<AbsoluteFilePath>());
+			string hash2 = FileHasher.ComputeHash(file2.As<AbsoluteFilePath>());
 
 			Assert.AreNotEqual(hash1, hash2);
 		}
@@ -70,7 +70,7 @@ public class ImageHasherTests
 			string file = Path.Combine(tempDir, "file.bin");
 			File.WriteAllBytes(file, [0xFF, 0xAB, 0xCD]);
 
-			string hash = ImageHasher.ComputeHash(file.As<AbsoluteFilePath>());
+			string hash = FileHasher.ComputeHash(file.As<AbsoluteFilePath>());
 
 			Assert.IsFalse(string.IsNullOrEmpty(hash));
 			Assert.AreEqual(64, hash.Length); // SHA256 produces 64 hex chars
@@ -96,7 +96,7 @@ public class ImageHasherTests
 			File.WriteAllBytes(file2, [4, 5, 6]);
 
 			AbsoluteFilePath[] paths = [file1.As<AbsoluteFilePath>(), file2.As<AbsoluteFilePath>()];
-			Dictionary<AbsoluteFilePath, string> results = ImageHasher.HashFiles(paths);
+			Dictionary<AbsoluteFilePath, string> results = FileHasher.HashFiles(paths);
 
 			Assert.AreEqual(2, results.Count);
 			Assert.IsTrue(results.ContainsKey(paths[0]));

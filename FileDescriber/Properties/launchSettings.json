@@ -1,6 +1,6 @@
 {
   "profiles": {
-    "ImageDescriber": {
+    "FileDescriber": {
       "commandName": "Project",
       "commandLineArgs": "-p ."
     }

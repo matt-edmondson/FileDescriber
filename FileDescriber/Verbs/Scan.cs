@@ -2,7 +2,7 @@
 // All rights reserved.
 // Licensed under the MIT license.
 
-namespace ktsu.ImageDescriber.Verbs;
+namespace ktsu.FileDescriber.Verbs;
 
 using System.Collections.Generic;
 using System.IO;
@@ -14,7 +14,7 @@ using CommandLine;
 using ktsu.Semantics.Paths;
 using ktsu.Semantics.Strings;
 
-[Verb("Scan", HelpText = "Scan a directory for images, describe them using Ollama, and store results.")]
+[Verb("Scan", HelpText = "Scan a directory for files, describe them using Ollama, and store results.")]
 internal sealed class Scan : BaseVerb<Scan>
 {
 	internal override bool ValidateArgs()
@@ -55,32 +55,34 @@ internal sealed class Scan : BaseVerb<Scan>
 		Console.WriteLine("Ollama is available.");
 		Console.WriteLine();
 
-		// Step 2: Discover image files
-		Console.WriteLine("Discovering image files...");
-		IReadOnlyList<AbsoluteFilePath> imageFiles = ImageScanner.ScanForImages(options.Path);
-		Console.WriteLine($"Found {imageFiles.Count} image(s).");
+		// Step 2: Discover all supported files
+		Console.WriteLine("Discovering files...");
+		IReadOnlyList<AbsoluteFilePath> allFiles = FileScanner.ScanForFiles(options.Path);
+		Console.WriteLine($"Found {allFiles.Count} supported file(s).");
 		Console.WriteLine();
 
-		if (imageFiles.Count == 0)
+		if (allFiles.Count == 0)
 		{
 			return;
 		}
 
 		// Step 3: Hash all files in parallel
-		Console.WriteLine("Hashing image files...");
-		Dictionary<AbsoluteFilePath, string> fileHashes = ImageHasher.HashFiles(imageFiles);
+		Console.WriteLine("Hashing files...");
+		Dictionary<AbsoluteFilePath, string> fileHashes = FileHasher.HashFiles(allFiles);
 		Console.WriteLine();
 
 		// Step 4: Filter out already-described hashes and deduplicate within this scan
-		Dictionary<string, ImageDescription> descriptions = Program.Settings.Descriptions;
-		Dictionary<string, List<AbsoluteFilePath>> newHashPaths = [];
+		Dictionary<string, FileDescription> descriptions = Program.Settings.Descriptions;
+		Dictionary<string, (List<AbsoluteFilePath> Paths, FileType Type)> newHashPaths = [];
 		int skippedCount = 0;
 		int newPathCount = 0;
 		int duplicateCount = 0;
 
 		foreach (KeyValuePair<AbsoluteFilePath, string> kvp in fileHashes)
 		{
-			if (descriptions.TryGetValue(kvp.Value, out ImageDescription? existing))
+			FileType fileType = FileScanner.GetFileType(kvp.Key.FileExtension) ?? FileType.Image;
+
+			if (descriptions.TryGetValue(kvp.Value, out FileDescription? existing))
 			{
 				skippedCount++;
 				if (!existing.KnownPaths.Contains(kvp.Key))
@@ -89,24 +91,24 @@ internal sealed class Scan : BaseVerb<Scan>
 					newPathCount++;
 				}
 			}
-			else if (newHashPaths.TryGetValue(kvp.Value, out List<AbsoluteFilePath>? paths))
+			else if (newHashPaths.TryGetValue(kvp.Value, out (List<AbsoluteFilePath> Paths, FileType Type) entry))
 			{
-				paths.Add(kvp.Key);
+				entry.Paths.Add(kvp.Key);
 				duplicateCount++;
 			}
 			else
 			{
-				newHashPaths[kvp.Value] = [kvp.Key];
+				newHashPaths[kvp.Value] = ([kvp.Key], fileType);
 			}
 		}
 
 		if (newPathCount > 0)
 		{
 			Program.Settings.Save();
-			Console.WriteLine($"Discovered {newPathCount} new path(s) for existing images.");
+			Console.WriteLine($"Discovered {newPathCount} new path(s) for existing files.");
 		}
 
-		Console.WriteLine($"Unique new images to describe: {newHashPaths.Count}");
+		Console.WriteLine($"Unique new files to describe: {newHashPaths.Count}");
 		if (duplicateCount > 0)
 		{
 			Console.WriteLine($"Found {duplicateCount} duplicate(s) that will share descriptions.");
@@ -114,14 +116,13 @@ internal sealed class Scan : BaseVerb<Scan>
 
 		if (skippedCount > 0)
 		{
-			Console.WriteLine($"Skipping {skippedCount} already-described image(s).");
+			Console.WriteLine($"Skipping {skippedCount} already-described file(s).");
 		}
 
 		Console.WriteLine();
 
-		// Step 5: Describe new images with configurable concurrency
-		string descriptionPrompt = Program.Settings.DescriptionPrompt;
-		string fileNamePrompt = Program.Settings.SuggestedFileNamePrompt;
+		// Step 5: Describe new files with configurable concurrency
+		FileNamePrompt fileNamePrompt = Program.Settings.GetFileNamePrompt(options.Model);
 		int maxConcurrency = Math.Max(1, Program.Settings.MaxConcurrentRequests);
 		int current = 0;
 		int total = newHashPaths.Count;
@@ -135,26 +136,37 @@ internal sealed class Scan : BaseVerb<Scan>
 
 		Parallel.ForEach(newHashPaths, parallelOptions, kvp =>
 		{
-			(string hash, List<AbsoluteFilePath> paths) = (kvp.Key, kvp.Value);
+			(string hash, (List<AbsoluteFilePath> paths, FileType fileType)) = (kvp.Key, kvp.Value);
 			AbsoluteFilePath filePath = paths[0];
 			int index = Interlocked.Increment(ref current);
 
 			lock (consoleLock)
 			{
-				Console.WriteLine($"[{index}/{total}] Describing {filePath.FileName} ({paths.Count} copy/copies)...");
+				Console.WriteLine($"[{index}/{total}] Describing {filePath.FileName} ({fileType}, {paths.Count} copy/copies)...");
 			}
 
 			try
 			{
 				string pathContext = string.Join("\n", paths.Select(p => p.WeakString));
-				string fullPrompt = $"Known file paths for this image:\n{pathContext}\n\n{descriptionPrompt}";
-				string description = OllamaClient.DescribeImageAsync(options.Endpoint, options.Model, fullPrompt, filePath).GetAwaiter().GetResult();
+				string description;
+				DescriptionPrompt descriptionPrompt = Program.Settings.GetDescriptionPrompt(options.Model, fileType);
 
-				string combinedFileNamePrompt = $"Image description: {description}\n\n{fileNamePrompt}";
+				if (fileType == FileType.Image)
+				{
+					string fullPrompt = $"Known file paths for this image:\n{pathContext}\n\n{descriptionPrompt.WeakString}";
+					description = OllamaClient.DescribeImageAsync(options.Endpoint, options.Model, fullPrompt, filePath).GetAwaiter().GetResult();
+				}
+				else
+				{
+					string fullPrompt = $"Known file paths for this file:\n{pathContext}\n\n{descriptionPrompt.WeakString}";
+					description = OllamaClient.DescribeTextAsync(options.Endpoint, options.Model, fullPrompt, filePath).GetAwaiter().GetResult();
+				}
+
+				string combinedFileNamePrompt = $"File description: {description}\n\n{fileNamePrompt.WeakString}";
 				string rawSuggestion = OllamaClient.GenerateAsync(options.Endpoint, options.Model, combinedFileNamePrompt).GetAwaiter().GetResult();
 				FileName suggestedFileName = SanitizeFileName(rawSuggestion, filePath.FileExtension);
 
-				ImageDescription entry = new()
+				FileDescription entry = new()
 				{
 					Hash = hash,
 					KnownPaths = [.. paths],
@@ -163,6 +175,7 @@ internal sealed class Scan : BaseVerb<Scan>
 					Model = options.Model,
 					DescribedAt = DateTime.UtcNow,
 					FileSizeBytes = new FileInfo(filePath.WeakString).Length,
+					FileType = fileType,
 				};
 
 				lock (saveLock)
