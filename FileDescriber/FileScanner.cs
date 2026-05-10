@@ -17,7 +17,6 @@ internal static class FileScanner
 		".jpg".As<FileExtension>(),
 		".jpeg".As<FileExtension>(),
 		".png".As<FileExtension>(),
-		".gif".As<FileExtension>(),
 		".bmp".As<FileExtension>(),
 		".webp".As<FileExtension>(),
 		".tiff".As<FileExtension>(),
