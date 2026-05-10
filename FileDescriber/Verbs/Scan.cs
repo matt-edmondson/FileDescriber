@@ -184,7 +184,7 @@ internal sealed class Scan : BaseVerb<Scan>
 
 			lock (consoleLock)
 			{
-				Console.WriteLine($"[{index}/{total}] Describing {filePath.FileName} ({fileType}, {paths.Count} copy/copies)...");
+				Console.WriteLine($"[{index}/{total}] Describing {filePath.FileName} ({fileType}, {paths.Count} copy/copies) via {endpoint}...");
 			}
 
 			DateTime requestStart = DateTime.UtcNow;
