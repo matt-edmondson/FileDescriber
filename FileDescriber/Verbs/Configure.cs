@@ -10,60 +10,21 @@ using CommandLine;
 
 using ktsu.Semantics.Strings;
 
-[Verb("Configure", HelpText = "Configure the Ollama endpoint and model settings.")]
+[Verb("Configure", HelpText = "Configure the AI backend endpoint, model, and other settings.")]
 internal sealed class Configure : BaseVerb<Configure>
 {
 	internal override void Run(Configure options)
 	{
 		PrintSettings();
 
-		// --- Endpoint(s) / model / concurrency ---
-		Console.WriteLine("Endpoints (current):");
-		for (int i = 0; i < Program.Settings.OllamaEndpoints.Count; i++)
-		{
-			Console.WriteLine($"  [{i + 1}] {Program.Settings.OllamaEndpoints[i]}");
-		}
+		ConfigureBackend();
 
 		Console.WriteLine();
-		Console.Write("Add endpoint (Enter to skip): ");
-		string? addEndpoint = Console.ReadLine();
-		while (!string.IsNullOrWhiteSpace(addEndpoint))
-		{
-			Program.Settings.OllamaEndpoints.Add(addEndpoint.Trim().As<OllamaEndpoint>());
-			Console.Write("Add another endpoint (Enter to skip): ");
-			addEndpoint = Console.ReadLine();
-		}
 
-		if (Program.Settings.OllamaEndpoints.Count > 1)
-		{
-			Console.Write("Remove endpoint by number (Enter to skip): ");
-			string? removeInput = Console.ReadLine();
-			while (!string.IsNullOrWhiteSpace(removeInput) &&
-				int.TryParse(removeInput.Trim(), out int removeIndex) &&
-				removeIndex >= 1 && removeIndex <= Program.Settings.OllamaEndpoints.Count)
-			{
-				OllamaEndpoint removed = Program.Settings.OllamaEndpoints[removeIndex - 1];
-				Program.Settings.OllamaEndpoints.RemoveAt(removeIndex - 1);
-				if (Program.Settings.OllamaEndpoints.Count == 0)
-				{
-					Console.WriteLine("Warning: at least one endpoint is required. Restored the removed entry.");
-					Program.Settings.OllamaEndpoints.Add(removed);
-					break;
-				}
-
-				Console.WriteLine("Remaining endpoints:");
-				for (int i = 0; i < Program.Settings.OllamaEndpoints.Count; i++)
-				{
-					Console.WriteLine($"  [{i + 1}] {Program.Settings.OllamaEndpoints[i]}");
-				}
-
-				Console.Write("Remove another endpoint by number (Enter to stop): ");
-				removeInput = Console.ReadLine();
-			}
-		}
+		ConfigureEndpoints();
 
 		Console.WriteLine();
-		Console.Write($"Ollama Model [{Program.Settings.OllamaModel}]: ");
+		Console.Write($"Model [{Program.Settings.OllamaModel}]: ");
 		string? modelInput = Console.ReadLine();
 		if (!string.IsNullOrWhiteSpace(modelInput))
 		{
@@ -115,11 +76,111 @@ internal sealed class Configure : BaseVerb<Configure>
 		PrintSettings();
 	}
 
+	private static void ConfigureBackend()
+	{
+		Console.WriteLine($"Backend type (current: {Program.Settings.BackendType}):");
+		Console.WriteLine("  [1] Ollama");
+		Console.WriteLine("  [2] OpenAI-compatible (standard OpenAI or LocalAI)");
+		Console.Write("Select backend (Enter to keep current): ");
+		string? backendInput = Console.ReadLine();
+		if (backendInput?.Trim() == "1")
+		{
+			Program.Settings.BackendType = BackendType.Ollama;
+		}
+		else if (backendInput?.Trim() == "2")
+		{
+			Program.Settings.BackendType = BackendType.OpenAi;
+		}
+
+		if (Program.Settings.BackendType == BackendType.OpenAi)
+		{
+			ConfigureApiKey();
+		}
+	}
+
+	private static void ConfigureApiKey()
+	{
+		string maskedKey = string.IsNullOrEmpty(Program.Settings.ApiKey)
+			? "(not set)"
+			: $"{Program.Settings.ApiKey[..Math.Min(4, Program.Settings.ApiKey.Length)]}…";
+		Console.WriteLine();
+		Console.Write($"API key [{maskedKey}] (Enter to keep, type 'clear' to remove): ");
+		string? keyInput = Console.ReadLine();
+		if (keyInput?.Trim().Equals("clear", StringComparison.OrdinalIgnoreCase) == true)
+		{
+			Program.Settings.ApiKey = string.Empty;
+		}
+		else if (!string.IsNullOrWhiteSpace(keyInput))
+		{
+			Program.Settings.ApiKey = keyInput.Trim();
+		}
+	}
+
+	private static void ConfigureEndpoints()
+	{
+		Console.WriteLine("Endpoints (current):");
+		for (int i = 0; i < Program.Settings.OllamaEndpoints.Count; i++)
+		{
+			Console.WriteLine($"  [{i + 1}] {Program.Settings.OllamaEndpoints[i]}");
+		}
+
+		Console.WriteLine();
+		string endpointHint = Program.Settings.BackendType == BackendType.OpenAi
+			? "e.g. http://localhost:8080 for LocalAI, https://api.openai.com for OpenAI"
+			: "e.g. http://localhost:11434";
+		Console.Write($"Add endpoint ({endpointHint}) (Enter to skip): ");
+		string? addEndpoint = Console.ReadLine();
+		while (!string.IsNullOrWhiteSpace(addEndpoint))
+		{
+			Program.Settings.OllamaEndpoints.Add(addEndpoint.Trim().As<OllamaEndpoint>());
+			Console.Write("Add another endpoint (Enter to skip): ");
+			addEndpoint = Console.ReadLine();
+		}
+
+		if (Program.Settings.OllamaEndpoints.Count > 1)
+		{
+			Console.Write("Remove endpoint by number (Enter to skip): ");
+			string? removeInput = Console.ReadLine();
+			while (!string.IsNullOrWhiteSpace(removeInput) &&
+				int.TryParse(removeInput.Trim(), out int removeIndex) &&
+				removeIndex >= 1 && removeIndex <= Program.Settings.OllamaEndpoints.Count)
+			{
+				OllamaEndpoint removed = Program.Settings.OllamaEndpoints[removeIndex - 1];
+				Program.Settings.OllamaEndpoints.RemoveAt(removeIndex - 1);
+				if (Program.Settings.OllamaEndpoints.Count == 0)
+				{
+					Console.WriteLine("Warning: at least one endpoint is required. Restored the removed entry.");
+					Program.Settings.OllamaEndpoints.Add(removed);
+					break;
+				}
+
+				Console.WriteLine("Remaining endpoints:");
+				for (int i = 0; i < Program.Settings.OllamaEndpoints.Count; i++)
+				{
+					Console.WriteLine($"  [{i + 1}] {Program.Settings.OllamaEndpoints[i]}");
+				}
+
+				Console.Write("Remove another endpoint by number (Enter to stop): ");
+				removeInput = Console.ReadLine();
+			}
+		}
+	}
+
 	private static void PrintSettings()
 	{
 		OllamaModelName model = Program.Settings.OllamaModel;
 
 		Console.WriteLine("Current Settings:");
+		Console.WriteLine($"  Backend:         {Program.Settings.BackendType}");
+
+		if (Program.Settings.BackendType == BackendType.OpenAi)
+		{
+			string maskedKey = string.IsNullOrEmpty(Program.Settings.ApiKey)
+				? "(not set)"
+				: $"{Program.Settings.ApiKey[..Math.Min(4, Program.Settings.ApiKey.Length)]}…";
+			Console.WriteLine($"  API key:         {maskedKey}");
+		}
+
 		Console.WriteLine($"  Endpoint(s):");
 		foreach (OllamaEndpoint ep in Program.Settings.OllamaEndpoints)
 		{

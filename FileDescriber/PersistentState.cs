@@ -16,6 +16,23 @@ internal sealed class PersistentState : AppData<PersistentState>
 	public OllamaModelName OllamaModel { get; set; } = "gemma3:27b".As<OllamaModelName>();
 	public int MaxConcurrentRequests { get; set; } = 1;
 
+	/// <summary>
+	/// Selects the AI backend to use for inference.
+	/// <list type="bullet">
+	///   <item><see cref="BackendType.Ollama"/> — talks to an Ollama server (default).</item>
+	///   <item><see cref="BackendType.OpenAi"/> — talks to any OpenAI-compatible server,
+	///   including standard OpenAI (api.openai.com) and LocalAI (localai.io).</item>
+	/// </list>
+	/// </summary>
+	public BackendType BackendType { get; set; } = BackendType.Ollama;
+
+	/// <summary>
+	/// API key sent in the <c>Authorization: Bearer …</c> header when
+	/// <see cref="BackendType"/> is <see cref="BackendType.OpenAi"/>.
+	/// Leave empty for LocalAI deployments that do not require authentication.
+	/// </summary>
+	public string ApiKey { get; set; } = string.Empty;
+
 	// Per-model, per-type description prompts.
 	// Outer key: model name (semantic type). Inner key: FileType enum. Value: typed prompt.
 	// When a model+type entry is absent the built-in defaults below are used.
