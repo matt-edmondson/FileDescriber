@@ -38,21 +38,41 @@ internal sealed class Scan : BaseVerb<Scan>
 	internal override void Run(Scan options)
 	{
 		Console.WriteLine($"Scanning: {options.Path}");
-		Console.WriteLine($"Endpoint: {options.Endpoint}");
+		Console.WriteLine($"Endpoint(s): {string.Join(", ", options.Endpoints)}");
 		Console.WriteLine($"Model: {options.Model}");
 		Console.WriteLine();
 
-		// Step 1: Check Ollama availability
-		Console.WriteLine("Checking Ollama availability...");
-		bool isAvailable = OllamaClient.IsAvailableAsync(options.Endpoint).GetAwaiter().GetResult();
-		if (!isAvailable)
+		// Step 1: Check Ollama availability across all endpoints
+		IReadOnlyList<OllamaEndpoint> endpoints = options.Endpoints;
+		if (endpoints.Count == 0)
 		{
-			Console.WriteLine($"Error: Ollama is not available at {options.Endpoint}");
-			Console.WriteLine("Make sure Ollama is running and the endpoint is correct.");
+			Console.WriteLine("Error: No Ollama endpoints configured. Use Configure or -e to specify at least one endpoint.");
 			return;
 		}
 
-		Console.WriteLine("Ollama is available.");
+		Console.WriteLine($"Checking Ollama availability ({endpoints.Count} endpoint(s))...");
+		List<OllamaEndpoint> availableEndpoints = [];
+		foreach (OllamaEndpoint ep in endpoints)
+		{
+			bool epAvailable = OllamaClient.IsAvailableAsync(ep).GetAwaiter().GetResult();
+			if (epAvailable)
+			{
+				Console.WriteLine($"  ✓ {ep}");
+				availableEndpoints.Add(ep);
+			}
+			else
+			{
+				Console.WriteLine($"  ✗ {ep} (unavailable — skipping)");
+			}
+		}
+
+		if (availableEndpoints.Count == 0)
+		{
+			Console.WriteLine("Error: No Ollama endpoints are available. Make sure Ollama is running and endpoints are correct.");
+			return;
+		}
+
+		Console.WriteLine($"Using {availableEndpoints.Count} available endpoint(s).");
 		Console.WriteLine();
 
 		// Step 2: Discover all supported files
@@ -124,12 +144,28 @@ internal sealed class Scan : BaseVerb<Scan>
 		// Step 5: Describe new files with configurable concurrency
 		FileNamePrompt fileNamePrompt = Program.Settings.GetFileNamePrompt(options.Model);
 		int maxConcurrency = Math.Max(1, Program.Settings.MaxConcurrentRequests);
+		DescribeFiles(newHashPaths, availableEndpoints, options.Model, fileNamePrompt, maxConcurrency);
+
+		Console.WriteLine("Scan complete.");
+		Console.WriteLine($"Total descriptions in database: {Program.Settings.Descriptions.Count}");
+
+		PathString = ".";
+	}
+
+	private static void DescribeFiles(
+		Dictionary<string, (List<AbsoluteFilePath> Paths, FileType Type)> newHashPaths,
+		List<OllamaEndpoint> availableEndpoints,
+		OllamaModelName model,
+		FileNamePrompt fileNamePrompt,
+		int maxConcurrency)
+	{
 		int current = 0;
 		int total = newHashPaths.Count;
 		Lock consoleLock = new();
 		Lock saveLock = new();
+		EndpointLoadBalancer balancer = new(availableEndpoints);
 
-		Console.WriteLine($"Processing with {maxConcurrency} concurrent request(s)...");
+		Console.WriteLine($"Processing with {maxConcurrency} concurrent request(s) across {availableEndpoints.Count} endpoint(s)...");
 		Console.WriteLine();
 
 		ParallelOptions parallelOptions = new() { MaxDegreeOfParallelism = maxConcurrency };
@@ -141,6 +177,9 @@ internal sealed class Scan : BaseVerb<Scan>
 			(string hash, (List<AbsoluteFilePath> paths, FileType fileType)) = (kvp.Key, kvp.Value);
 			AbsoluteFilePath filePath = paths[0];
 			int index = Interlocked.Increment(ref current);
+
+			// Pick the least-loaded endpoint for this request.
+			(int endpointIndex, OllamaEndpoint endpoint) = balancer.Acquire();
 
 			lock (consoleLock)
 			{
@@ -154,21 +193,21 @@ internal sealed class Scan : BaseVerb<Scan>
 			{
 				string pathContext = string.Join("\n", paths.Select(p => p.WeakString));
 				string description;
-				DescriptionPrompt descriptionPrompt = Program.Settings.GetDescriptionPrompt(options.Model, fileType);
+				DescriptionPrompt descriptionPrompt = Program.Settings.GetDescriptionPrompt(model, fileType);
 
 				if (fileType == FileType.Image)
 				{
 					string fullPrompt = $"Known file paths for this image:\n{pathContext}\n\n{descriptionPrompt.WeakString}";
-					description = OllamaClient.DescribeImageAsync(options.Endpoint, options.Model, fullPrompt, filePath).GetAwaiter().GetResult();
+					description = OllamaClient.DescribeImageAsync(endpoint, model, fullPrompt, filePath).GetAwaiter().GetResult();
 				}
 				else
 				{
 					string fullPrompt = $"Known file paths for this file:\n{pathContext}\n\n{descriptionPrompt.WeakString}";
-					description = OllamaClient.DescribeTextAsync(options.Endpoint, options.Model, fullPrompt, filePath).GetAwaiter().GetResult();
+					description = OllamaClient.DescribeTextAsync(endpoint, model, fullPrompt, filePath).GetAwaiter().GetResult();
 				}
 
 				string combinedFileNamePrompt = $"File description: {description}\n\n{fileNamePrompt.WeakString}";
-				string rawSuggestion = OllamaClient.GenerateAsync(options.Endpoint, options.Model, combinedFileNamePrompt).GetAwaiter().GetResult();
+				string rawSuggestion = OllamaClient.GenerateAsync(endpoint, model, combinedFileNamePrompt).GetAwaiter().GetResult();
 				FileName suggestedFileName = SanitizeFileName(rawSuggestion, filePath.FileExtension);
 
 				requestElapsed = DateTime.UtcNow - requestStart;
@@ -179,7 +218,7 @@ internal sealed class Scan : BaseVerb<Scan>
 					KnownPaths = [.. paths],
 					Description = description,
 					SuggestedFileName = suggestedFileName,
-					Model = options.Model,
+					Model = model,
 					DescribedAt = DateTime.UtcNow,
 					FileSizeBytes = new FileInfo(filePath.WeakString).Length,
 					FileType = fileType,
@@ -212,12 +251,11 @@ internal sealed class Scan : BaseVerb<Scan>
 					Console.WriteLine($"  [{index}/{total}] Error describing {filePath.FileName}: {ex.Message} ({FormatDuration(requestElapsed)}) | ETA: {eta}");
 				}
 			}
+			finally
+			{
+				balancer.Release(endpointIndex);
+			}
 		});
-
-		Console.WriteLine("Scan complete.");
-		Console.WriteLine($"Total descriptions in database: {Program.Settings.Descriptions.Count}");
-
-		PathString = ".";
 	}
 
 	internal static FileName SanitizeFileName(string rawSuggestion, FileExtension extension)

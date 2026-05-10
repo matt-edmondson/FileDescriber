@@ -12,7 +12,7 @@ using ktsu.Semantics.Strings;
 internal sealed class PersistentState : AppData<PersistentState>
 {
 	public Dictionary<string, FileDescription> Descriptions { get; set; } = [];
-	public OllamaEndpoint OllamaEndpoint { get; set; } = "https://ollama.local.ktsu.dev".As<OllamaEndpoint>();
+	public List<OllamaEndpoint> OllamaEndpoints { get; set; } = ["https://ollama.local.ktsu.dev".As<OllamaEndpoint>()];
 	public OllamaModelName OllamaModel { get; set; } = "gemma3:27b".As<OllamaModelName>();
 	public int MaxConcurrentRequests { get; set; } = 1;
 

@@ -4,6 +4,9 @@
 
 namespace ktsu.FileDescriber.Verbs;
 
+using System.Collections.Generic;
+using System.Linq;
+
 using CommandLine;
 
 using DustInTheWind.ConsoleTools.Controls.Menus;
@@ -16,8 +19,8 @@ internal abstract class BaseVerb : ICommand
 	[Option('p', "path", Required = false, HelpText = "The root path to scan for files.")]
 	public string PathString { get; set; } = ".";
 
-	[Option('e', "endpoint", Required = false, HelpText = "The Ollama API endpoint URL.")]
-	public string EndpointString { get; set; } = string.Empty;
+	[Option('e', "endpoint", Required = false, HelpText = "The Ollama API endpoint URL (can be specified multiple times to balance load).")]
+	public IEnumerable<string> EndpointStrings { get; set; } = [];
 
 	[Option('m', "model", Required = false, HelpText = "The Ollama model to use.")]
 	public string ModelString { get; set; } = string.Empty;
@@ -26,7 +29,10 @@ internal abstract class BaseVerb : ICommand
 
 	internal AbsoluteDirectoryPath Path => System.IO.Path.GetFullPath(PathString).As<AbsoluteDirectoryPath>();
 
-	internal OllamaEndpoint Endpoint => string.IsNullOrEmpty(EndpointString) ? Program.Settings.OllamaEndpoint : EndpointString.As<OllamaEndpoint>();
+	internal IReadOnlyList<OllamaEndpoint> Endpoints =>
+		EndpointStrings.Any()
+			? [.. EndpointStrings.Select(e => e.As<OllamaEndpoint>())]
+			: Program.Settings.OllamaEndpoints;
 
 	internal OllamaModelName Model => string.IsNullOrEmpty(ModelString) ? Program.Settings.OllamaModel : ModelString.As<OllamaModelName>();
 
