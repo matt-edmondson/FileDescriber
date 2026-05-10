@@ -17,13 +17,13 @@ internal sealed class PersistentState : AppData<PersistentState>
 	public int MaxConcurrentRequests { get; set; } = 1;
 
 	// Per-model, per-type description prompts.
-	// Outer key: model name. Inner key: FileType.ToString(). Value: typed prompt.
+	// Outer key: model name (semantic type). Inner key: FileType enum. Value: typed prompt.
 	// When a model+type entry is absent the built-in defaults below are used.
-	public Dictionary<string, Dictionary<string, DescriptionPrompt>> DescriptionPrompts { get; set; } = new()
+	public Dictionary<OllamaModelName, Dictionary<FileType, DescriptionPrompt>> DescriptionPrompts { get; set; } = new()
 	{
-		["gemma3:27b"] = new()
+		["gemma3:27b".As<OllamaModelName>()] = new()
 		{
-			[nameof(FileType.Image)] =
+			[FileType.Image] =
 				(
 					"Look at this image carefully and write a single paragraph describing what you see. " +
 					"Include the main subject, setting, colours, mood, and any notable details. " +
@@ -31,7 +31,7 @@ internal sealed class PersistentState : AppData<PersistentState>
 					"Do not begin with phrases like 'This image shows' or 'I can see'."
 				).As<DescriptionPrompt>(),
 
-			[nameof(FileType.Text)] =
+			[FileType.Text] =
 				(
 					"Read the following text carefully and write a single paragraph summarising its content, " +
 					"purpose, and key points. Write in plain prose only — no bullet points, headers, or labels. " +
@@ -41,11 +41,11 @@ internal sealed class PersistentState : AppData<PersistentState>
 	};
 
 	// Per-model filename suggestion prompts.
-	// Key: model name. Value: typed prompt.
+	// Key: model name (semantic type). Value: typed prompt.
 	// When a model entry is absent DefaultFileNamePrompt is used.
-	public Dictionary<string, FileNamePrompt> FileNamePrompts { get; set; } = new()
+	public Dictionary<OllamaModelName, FileNamePrompt> FileNamePrompts { get; set; } = new()
 	{
-		["gemma3:27b"] =
+		["gemma3:27b".As<OllamaModelName>()] =
 			(
 				"Based on the description above, output a single filename stem. " +
 				"Use only lowercase letters, digits, and hyphens. " +
@@ -94,8 +94,8 @@ internal sealed class PersistentState : AppData<PersistentState>
 
 	internal DescriptionPrompt GetDescriptionPrompt(OllamaModelName model, FileType fileType)
 	{
-		if (DescriptionPrompts.TryGetValue(model.WeakString, out Dictionary<string, DescriptionPrompt>? typeDict) &&
-			typeDict.TryGetValue(fileType.ToString(), out DescriptionPrompt? prompt) &&
+		if (DescriptionPrompts.TryGetValue(model, out Dictionary<FileType, DescriptionPrompt>? typeDict) &&
+			typeDict.TryGetValue(fileType, out DescriptionPrompt? prompt) &&
 			!string.IsNullOrWhiteSpace(prompt.WeakString))
 		{
 			return prompt;
@@ -106,7 +106,7 @@ internal sealed class PersistentState : AppData<PersistentState>
 
 	internal FileNamePrompt GetFileNamePrompt(OllamaModelName model)
 	{
-		if (FileNamePrompts.TryGetValue(model.WeakString, out FileNamePrompt? prompt) &&
+		if (FileNamePrompts.TryGetValue(model, out FileNamePrompt? prompt) &&
 			!string.IsNullOrWhiteSpace(prompt.WeakString))
 		{
 			return prompt;
@@ -117,15 +117,15 @@ internal sealed class PersistentState : AppData<PersistentState>
 
 	internal void SetDescriptionPrompt(OllamaModelName model, FileType fileType, DescriptionPrompt prompt)
 	{
-		if (!DescriptionPrompts.TryGetValue(model.WeakString, out Dictionary<string, DescriptionPrompt>? typeDict))
+		if (!DescriptionPrompts.TryGetValue(model, out Dictionary<FileType, DescriptionPrompt>? typeDict))
 		{
 			typeDict = [];
-			DescriptionPrompts[model.WeakString] = typeDict;
+			DescriptionPrompts[model] = typeDict;
 		}
 
-		typeDict[fileType.ToString()] = prompt;
+		typeDict[fileType] = prompt;
 	}
 
 	internal void SetFileNamePrompt(OllamaModelName model, FileNamePrompt prompt) =>
-		FileNamePrompts[model.WeakString] = prompt;
+		FileNamePrompts[model] = prompt;
 }
