@@ -42,11 +42,12 @@ internal sealed class Configure : BaseVerb<Configure>
 				int.TryParse(removeInput.Trim(), out int removeIndex) &&
 				removeIndex >= 1 && removeIndex <= Program.Settings.OllamaEndpoints.Count)
 			{
+				OllamaEndpoint removed = Program.Settings.OllamaEndpoints[removeIndex - 1];
 				Program.Settings.OllamaEndpoints.RemoveAt(removeIndex - 1);
 				if (Program.Settings.OllamaEndpoints.Count == 0)
 				{
-					Console.WriteLine("Warning: at least one endpoint is required. Keeping removed entry.");
-					Program.Settings.OllamaEndpoints.Add("https://ollama.local.ktsu.dev".As<OllamaEndpoint>());
+					Console.WriteLine("Warning: at least one endpoint is required. Restored the removed entry.");
+					Program.Settings.OllamaEndpoints.Add(removed);
 					break;
 				}
 

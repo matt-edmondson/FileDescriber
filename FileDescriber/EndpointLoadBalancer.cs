@@ -5,7 +5,6 @@
 namespace ktsu.FileDescriber;
 
 using System.Collections.Generic;
-using System.Threading;
 
 // Distributes requests across a pool of endpoints using least-connections balancing.
 // Each new request is routed to the endpoint that currently has the fewest in-flight
@@ -14,6 +13,7 @@ internal sealed class EndpointLoadBalancer
 {
 	private readonly IReadOnlyList<OllamaEndpoint> _endpoints;
 	private readonly int[] _activeCounts;
+	private readonly Lock _lock = new();
 
 	internal EndpointLoadBalancer(IReadOnlyList<OllamaEndpoint> endpoints)
 	{
@@ -21,30 +21,38 @@ internal sealed class EndpointLoadBalancer
 		_activeCounts = new int[endpoints.Count];
 	}
 
-	// Returns the index of the least-loaded endpoint and increments its active count.
+	// Returns the index of the least-loaded endpoint and atomically increments its active count.
 	// Call Release with the same index when the request completes.
 	internal int Acquire()
 	{
-		int minIndex = 0;
-		int minCount = Volatile.Read(ref _activeCounts[0]);
-
-		for (int i = 1; i < _activeCounts.Length; i++)
+		lock (_lock)
 		{
-			int count = Volatile.Read(ref _activeCounts[i]);
-			if (count < minCount)
-			{
-				minCount = count;
-				minIndex = i;
-			}
-		}
+			int minIndex = 0;
+			int minCount = _activeCounts[0];
 
-		Interlocked.Increment(ref _activeCounts[minIndex]);
-		return minIndex;
+			for (int i = 1; i < _activeCounts.Length; i++)
+			{
+				if (_activeCounts[i] < minCount)
+				{
+					minCount = _activeCounts[i];
+					minIndex = i;
+				}
+			}
+
+			_activeCounts[minIndex]++;
+			return minIndex;
+		}
 	}
 
 	// Decrements the active count for the endpoint at the given index.
 	// Must be called exactly once for every successful Acquire call.
-	internal void Release(int index) => Interlocked.Decrement(ref _activeCounts[index]);
+	internal void Release(int index)
+	{
+		lock (_lock)
+		{
+			_activeCounts[index]--;
+		}
+	}
 
 	internal OllamaEndpoint this[int index] => _endpoints[index];
 }
