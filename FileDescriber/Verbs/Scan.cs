@@ -46,7 +46,7 @@ internal sealed class Scan : BaseVerb<Scan>
 		IReadOnlyList<OllamaEndpoint> endpoints = options.Endpoints;
 		if (endpoints.Count == 0)
 		{
-			Console.WriteLine("Error: No Ollama endpoints configured. Use Configure or -e to specify at least one endpoint.");
+			Console.WriteLine("Error: No endpoints configured. Use Configure or -e to specify at least one endpoint.");
 			return;
 		}
 
