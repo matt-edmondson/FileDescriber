@@ -122,7 +122,7 @@ internal sealed class Scan : BaseVerb<Scan>
 		Console.WriteLine();
 
 		// Step 5: Describe new files with configurable concurrency
-		string fileNamePrompt = Program.Settings.GetFileNamePrompt(options.Model);
+		FileNamePrompt fileNamePrompt = Program.Settings.GetFileNamePrompt(options.Model);
 		int maxConcurrency = Math.Max(1, Program.Settings.MaxConcurrentRequests);
 		int current = 0;
 		int total = newHashPaths.Count;
@@ -149,20 +149,20 @@ internal sealed class Scan : BaseVerb<Scan>
 			{
 				string pathContext = string.Join("\n", paths.Select(p => p.WeakString));
 				string description;
-				string descriptionPrompt = Program.Settings.GetDescriptionPrompt(options.Model, fileType);
+				DescriptionPrompt descriptionPrompt = Program.Settings.GetDescriptionPrompt(options.Model, fileType);
 
 				if (fileType == FileType.Image)
 				{
-					string fullPrompt = $"Known file paths for this image:\n{pathContext}\n\n{descriptionPrompt}";
+					string fullPrompt = $"Known file paths for this image:\n{pathContext}\n\n{descriptionPrompt.WeakString}";
 					description = OllamaClient.DescribeImageAsync(options.Endpoint, options.Model, fullPrompt, filePath).GetAwaiter().GetResult();
 				}
 				else
 				{
-					string fullPrompt = $"Known file paths for this file:\n{pathContext}\n\n{descriptionPrompt}";
+					string fullPrompt = $"Known file paths for this file:\n{pathContext}\n\n{descriptionPrompt.WeakString}";
 					description = OllamaClient.DescribeTextAsync(options.Endpoint, options.Model, fullPrompt, filePath).GetAwaiter().GetResult();
 				}
 
-				string combinedFileNamePrompt = $"File description: {description}\n\n{fileNamePrompt}";
+				string combinedFileNamePrompt = $"File description: {description}\n\n{fileNamePrompt.WeakString}";
 				string rawSuggestion = OllamaClient.GenerateAsync(options.Endpoint, options.Model, combinedFileNamePrompt).GetAwaiter().GetResult();
 				FileName suggestedFileName = SanitizeFileName(rawSuggestion, filePath.FileExtension);
 

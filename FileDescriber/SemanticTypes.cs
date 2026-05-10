@@ -9,3 +9,7 @@ using ktsu.Semantics.Strings;
 internal sealed record OllamaEndpoint : SemanticString<OllamaEndpoint>;
 
 internal sealed record OllamaModelName : SemanticString<OllamaModelName>;
+
+internal sealed record DescriptionPrompt : SemanticString<DescriptionPrompt>;
+
+internal sealed record FileNamePrompt : SemanticString<FileNamePrompt>;

@@ -50,24 +50,24 @@ internal sealed class Configure : BaseVerb<Configure>
 
 		foreach (FileType fileType in Enum.GetValues<FileType>())
 		{
-			string effective = Program.Settings.GetDescriptionPrompt(currentModel, fileType);
-			string preview = effective[..Math.Min(60, effective.Length)];
+			DescriptionPrompt effective = Program.Settings.GetDescriptionPrompt(currentModel, fileType);
+			string preview = effective.WeakString[..Math.Min(60, effective.WeakString.Length)];
 			Console.Write($"  {fileType} [{preview}...]: ");
 			string? input = Console.ReadLine();
 			if (!string.IsNullOrWhiteSpace(input))
 			{
-				Program.Settings.SetDescriptionPrompt(currentModel, fileType, input.Trim());
+				Program.Settings.SetDescriptionPrompt(currentModel, fileType, input.Trim().As<DescriptionPrompt>());
 			}
 		}
 
 		Console.WriteLine();
-		string effectiveFileName = Program.Settings.GetFileNamePrompt(currentModel);
-		string fileNamePreview = effectiveFileName[..Math.Min(60, effectiveFileName.Length)];
+		FileNamePrompt effectiveFileName = Program.Settings.GetFileNamePrompt(currentModel);
+		string fileNamePreview = effectiveFileName.WeakString[..Math.Min(60, effectiveFileName.WeakString.Length)];
 		Console.Write($"Filename prompt for '{currentModel}' [{fileNamePreview}...]: ");
 		string? fileNameInput = Console.ReadLine();
 		if (!string.IsNullOrWhiteSpace(fileNameInput))
 		{
-			Program.Settings.SetFileNamePrompt(currentModel, fileNameInput.Trim());
+			Program.Settings.SetFileNamePrompt(currentModel, fileNameInput.Trim().As<FileNamePrompt>());
 		}
 
 		Program.Settings.Save();
@@ -90,12 +90,12 @@ internal sealed class Configure : BaseVerb<Configure>
 
 		foreach (FileType fileType in Enum.GetValues<FileType>())
 		{
-			string effective = Program.Settings.GetDescriptionPrompt(model, fileType);
-			Console.WriteLine($"    {fileType}: {effective[..Math.Min(60, effective.Length)]}...");
+			DescriptionPrompt effective = Program.Settings.GetDescriptionPrompt(model, fileType);
+			Console.WriteLine($"    {fileType}: {effective.WeakString[..Math.Min(60, effective.WeakString.Length)]}...");
 		}
 
-		string fileNamePrompt = Program.Settings.GetFileNamePrompt(model);
-		Console.WriteLine($"    Filename: {fileNamePrompt[..Math.Min(60, fileNamePrompt.Length)]}...");
+		FileNamePrompt fileNamePrompt = Program.Settings.GetFileNamePrompt(model);
+		Console.WriteLine($"    Filename: {fileNamePrompt.WeakString[..Math.Min(60, fileNamePrompt.WeakString.Length)]}...");
 		Console.WriteLine();
 	}
 }
