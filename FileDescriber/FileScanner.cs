@@ -40,13 +40,13 @@ internal static class FileScanner
 		".log".As<FileExtension>(),
 	];
 
-	internal static bool IsImageExtension(FileExtension ext) => ImageExtensions.Contains(ext.WeakString.ToLowerInvariant().As<FileExtension>());
+	internal static bool IsImageExtension(FileExtension ext) => ImageExtensions.Contains(ext.ToLowerInvariant().As<FileExtension>());
 
-	internal static bool IsTextExtension(FileExtension ext) => TextExtensions.Contains(ext.WeakString.ToLowerInvariant().As<FileExtension>());
+	internal static bool IsTextExtension(FileExtension ext) => TextExtensions.Contains(ext.ToLowerInvariant().As<FileExtension>());
 
 	internal static FileType? GetFileType(FileExtension ext)
 	{
-		FileExtension normalized = ext.WeakString.ToLowerInvariant().As<FileExtension>();
+		FileExtension normalized = ext.ToLowerInvariant().As<FileExtension>();
 
 		if (ImageExtensions.Contains(normalized))
 		{
