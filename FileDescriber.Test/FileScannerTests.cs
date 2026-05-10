@@ -202,4 +202,87 @@ public class FileScannerTests
 		Assert.IsNull(FileScanner.GetFileType(".exe".As<FileExtension>()));
 		Assert.IsNull(FileScanner.GetFileType(".mp3".As<FileExtension>()));
 	}
+
+	[TestMethod]
+	public void GetFileTypeIsCaseInsensitiveForImageExtensions()
+	{
+		Assert.AreEqual(FileType.Image, FileScanner.GetFileType(".JPG".As<FileExtension>()));
+		Assert.AreEqual(FileType.Image, FileScanner.GetFileType(".PNG".As<FileExtension>()));
+		Assert.AreEqual(FileType.Image, FileScanner.GetFileType(".Gif".As<FileExtension>()));
+	}
+
+	[TestMethod]
+	public void GetFileTypeIsCaseInsensitiveForTextExtensions()
+	{
+		Assert.AreEqual(FileType.Text, FileScanner.GetFileType(".TXT".As<FileExtension>()));
+		Assert.AreEqual(FileType.Text, FileScanner.GetFileType(".MD".As<FileExtension>()));
+		Assert.AreEqual(FileType.Text, FileScanner.GetFileType(".Json".As<FileExtension>()));
+	}
+
+	[TestMethod]
+	public void ScanForFilesFindsUppercaseExtensions()
+	{
+		string tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+		Directory.CreateDirectory(tempDir);
+
+		try
+		{
+			File.WriteAllBytes(Path.Combine(tempDir, "photo.JPG"), [0xFF, 0xD8]);
+			File.WriteAllBytes(Path.Combine(tempDir, "image.PNG"), [0x89, 0x50]);
+			File.WriteAllText(Path.Combine(tempDir, "readme.TXT"), "hello");
+			File.WriteAllText(Path.Combine(tempDir, "notes.MD"), "# Notes");
+
+			IReadOnlyList<AbsoluteFilePath> results = FileScanner.ScanForFiles(tempDir.As<AbsoluteDirectoryPath>());
+
+			Assert.AreEqual(4, results.Count);
+		}
+		finally
+		{
+			Directory.Delete(tempDir, true);
+		}
+	}
+
+	[TestMethod]
+	public void ScanForImagesFindsUppercaseExtensions()
+	{
+		string tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+		Directory.CreateDirectory(tempDir);
+
+		try
+		{
+			File.WriteAllBytes(Path.Combine(tempDir, "photo.JPG"), [0xFF, 0xD8]);
+			File.WriteAllBytes(Path.Combine(tempDir, "image.PNG"), [0x89, 0x50]);
+			File.WriteAllBytes(Path.Combine(tempDir, "anim.GIF"), [0x47, 0x49]);
+
+			IReadOnlyList<AbsoluteFilePath> results = FileScanner.ScanForImages(tempDir.As<AbsoluteDirectoryPath>());
+
+			Assert.AreEqual(3, results.Count);
+		}
+		finally
+		{
+			Directory.Delete(tempDir, true);
+		}
+	}
+
+	[TestMethod]
+	public void ScanForTextFilesFindsUppercaseExtensions()
+	{
+		string tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+		Directory.CreateDirectory(tempDir);
+
+		try
+		{
+			File.WriteAllText(Path.Combine(tempDir, "readme.TXT"), "hello");
+			File.WriteAllText(Path.Combine(tempDir, "notes.MD"), "# Notes");
+			File.WriteAllText(Path.Combine(tempDir, "config.JSON"), "{}");
+
+			IReadOnlyList<AbsoluteFilePath> results = FileScanner.ScanForTextFiles(tempDir.As<AbsoluteDirectoryPath>());
+
+			Assert.AreEqual(3, results.Count);
+		}
+		finally
+		{
+			Directory.Delete(tempDir, true);
+		}
+	}
 }

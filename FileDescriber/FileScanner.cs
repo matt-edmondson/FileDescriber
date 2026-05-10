@@ -40,18 +40,20 @@ internal static class FileScanner
 		".log".As<FileExtension>(),
 	];
 
-	internal static bool IsImageExtension(FileExtension ext) => ImageExtensions.Contains(ext);
+	internal static bool IsImageExtension(FileExtension ext) => ImageExtensions.Contains(ext.WeakString.ToLowerInvariant().As<FileExtension>());
 
-	internal static bool IsTextExtension(FileExtension ext) => TextExtensions.Contains(ext);
+	internal static bool IsTextExtension(FileExtension ext) => TextExtensions.Contains(ext.WeakString.ToLowerInvariant().As<FileExtension>());
 
 	internal static FileType? GetFileType(FileExtension ext)
 	{
-		if (ImageExtensions.Contains(ext))
+		FileExtension normalized = ext.WeakString.ToLowerInvariant().As<FileExtension>();
+
+		if (ImageExtensions.Contains(normalized))
 		{
 			return FileType.Image;
 		}
 
-		if (TextExtensions.Contains(ext))
+		if (TextExtensions.Contains(normalized))
 		{
 			return FileType.Text;
 		}
@@ -76,7 +78,7 @@ internal static class FileScanner
 				continue;
 			}
 
-			FileExtension fileExtension = ext.As<FileExtension>();
+			FileExtension fileExtension = ext.ToLowerInvariant().As<FileExtension>();
 			if (ImageExtensions.Contains(fileExtension) || TextExtensions.Contains(fileExtension))
 			{
 				files.Add(file.As<AbsoluteFilePath>());
@@ -103,7 +105,7 @@ internal static class FileScanner
 				continue;
 			}
 
-			if (ImageExtensions.Contains(ext.As<FileExtension>()))
+			if (ImageExtensions.Contains(ext.ToLowerInvariant().As<FileExtension>()))
 			{
 				imageFiles.Add(file.As<AbsoluteFilePath>());
 			}
@@ -129,7 +131,7 @@ internal static class FileScanner
 				continue;
 			}
 
-			if (TextExtensions.Contains(ext.As<FileExtension>()))
+			if (TextExtensions.Contains(ext.ToLowerInvariant().As<FileExtension>()))
 			{
 				textFiles.Add(file.As<AbsoluteFilePath>());
 			}
