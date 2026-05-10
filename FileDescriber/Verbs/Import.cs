@@ -176,7 +176,7 @@ internal sealed class Import : BaseVerb<Import>
 				List<AbsoluteFilePath> knownPaths = [.. fields[3]
 					.Split("; ", StringSplitOptions.RemoveEmptyEntries)
 					.Select(p => p.As<AbsoluteFilePath>())];
-				OllamaModelName model = fields[4].As<OllamaModelName>();
+				AiModelName model = fields[4].As<AiModelName>();
 				DateTime describedAt = DateTime.Parse(fields[5], CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind);
 				long fileSizeBytes = long.Parse(fields[6], CultureInfo.InvariantCulture);
 				string description = fields[7];

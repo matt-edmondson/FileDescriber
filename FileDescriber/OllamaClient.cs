@@ -20,7 +20,7 @@ internal static class OllamaClient
 		Timeout = TimeSpan.FromMinutes(10),
 	};
 
-	internal static async Task<bool> IsAvailableAsync(OllamaEndpoint endpoint)
+	internal static async Task<bool> IsAvailableAsync(AiEndpoint endpoint)
 	{
 		try
 		{
@@ -37,7 +37,7 @@ internal static class OllamaClient
 		}
 	}
 
-	internal static async Task<string> DescribeImageAsync(OllamaEndpoint endpoint, OllamaModelName model, string prompt, AbsoluteFilePath imagePath)
+	internal static async Task<string> DescribeImageAsync(AiEndpoint endpoint, AiModelName model, string prompt, AbsoluteFilePath imagePath)
 	{
 		byte[] imageBytes = await File.ReadAllBytesAsync(imagePath.WeakString).ConfigureAwait(false);
 		string base64Image = Convert.ToBase64String(imageBytes);
@@ -53,7 +53,7 @@ internal static class OllamaClient
 		return await SendRequestAsync(endpoint, request).ConfigureAwait(false);
 	}
 
-	internal static async Task<string> DescribeTextAsync(OllamaEndpoint endpoint, OllamaModelName model, string prompt, AbsoluteFilePath textPath)
+	internal static async Task<string> DescribeTextAsync(AiEndpoint endpoint, AiModelName model, string prompt, AbsoluteFilePath textPath)
 	{
 		string fileContent = await File.ReadAllTextAsync(textPath.WeakString).ConfigureAwait(false);
 
@@ -67,7 +67,7 @@ internal static class OllamaClient
 		return await SendRequestAsync(endpoint, request).ConfigureAwait(false);
 	}
 
-	internal static async Task<string> GenerateAsync(OllamaEndpoint endpoint, OllamaModelName model, string prompt)
+	internal static async Task<string> GenerateAsync(AiEndpoint endpoint, AiModelName model, string prompt)
 	{
 		OllamaRequest request = new()
 		{
@@ -79,7 +79,7 @@ internal static class OllamaClient
 		return await SendRequestAsync(endpoint, request).ConfigureAwait(false);
 	}
 
-	private static async Task<string> SendRequestAsync(OllamaEndpoint endpoint, OllamaRequest request)
+	private static async Task<string> SendRequestAsync(AiEndpoint endpoint, OllamaRequest request)
 	{
 		string jsonContent = JsonSerializer.Serialize(request, OllamaJsonContext.Default.OllamaRequest);
 		using StringContent content = new(jsonContent, Encoding.UTF8, "application/json");

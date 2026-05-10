@@ -6,9 +6,9 @@ namespace ktsu.FileDescriber;
 
 using ktsu.Semantics.Strings;
 
-internal sealed record OllamaEndpoint : SemanticString<OllamaEndpoint>;
+internal sealed record AiEndpoint : SemanticString<AiEndpoint>;
 
-internal sealed record OllamaModelName : SemanticString<OllamaModelName>;
+internal sealed record AiModelName : SemanticString<AiModelName>;
 
 internal sealed record DescriptionPrompt : SemanticString<DescriptionPrompt>;
 

@@ -43,7 +43,7 @@ internal sealed class Scan : BaseVerb<Scan>
 		Console.WriteLine();
 
 		// Step 1: Check Ollama availability across all endpoints
-		IReadOnlyList<OllamaEndpoint> endpoints = options.Endpoints;
+		IReadOnlyList<AiEndpoint> endpoints = options.Endpoints;
 		if (endpoints.Count == 0)
 		{
 			Console.WriteLine("Error: No endpoints configured. Use Configure or -e to specify at least one endpoint.");
@@ -52,8 +52,8 @@ internal sealed class Scan : BaseVerb<Scan>
 
 		string backendLabel = Program.Settings.BackendType == BackendType.OpenAi ? "OpenAI-compatible" : "Ollama";
 		Console.WriteLine($"Checking {backendLabel} availability ({endpoints.Count} endpoint(s))...");
-		List<OllamaEndpoint> availableEndpoints = [];
-		foreach (OllamaEndpoint ep in endpoints)
+		List<AiEndpoint> availableEndpoints = [];
+		foreach (AiEndpoint ep in endpoints)
 		{
 			bool epAvailable = AiClient.IsAvailableAsync(ep).GetAwaiter().GetResult();
 			if (epAvailable)
@@ -155,8 +155,8 @@ internal sealed class Scan : BaseVerb<Scan>
 
 	private static void DescribeFiles(
 		Dictionary<string, (List<AbsoluteFilePath> Paths, FileType Type)> newHashPaths,
-		List<OllamaEndpoint> availableEndpoints,
-		OllamaModelName model,
+		List<AiEndpoint> availableEndpoints,
+		AiModelName model,
 		FileNamePrompt fileNamePrompt,
 		int maxConcurrency)
 	{
@@ -180,7 +180,7 @@ internal sealed class Scan : BaseVerb<Scan>
 			int index = Interlocked.Increment(ref current);
 
 			// Pick the least-loaded endpoint for this request.
-			(int endpointIndex, OllamaEndpoint endpoint) = balancer.Acquire();
+			(int endpointIndex, AiEndpoint endpoint) = balancer.Acquire();
 
 			lock (consoleLock)
 			{
