@@ -46,15 +46,16 @@ internal sealed class Scan : BaseVerb<Scan>
 		IReadOnlyList<OllamaEndpoint> endpoints = options.Endpoints;
 		if (endpoints.Count == 0)
 		{
-			Console.WriteLine("Error: No Ollama endpoints configured. Use Configure or -e to specify at least one endpoint.");
+			Console.WriteLine("Error: No endpoints configured. Use Configure or -e to specify at least one endpoint.");
 			return;
 		}
 
-		Console.WriteLine($"Checking Ollama availability ({endpoints.Count} endpoint(s))...");
+		string backendLabel = Program.Settings.BackendType == BackendType.OpenAi ? "OpenAI-compatible" : "Ollama";
+		Console.WriteLine($"Checking {backendLabel} availability ({endpoints.Count} endpoint(s))...");
 		List<OllamaEndpoint> availableEndpoints = [];
 		foreach (OllamaEndpoint ep in endpoints)
 		{
-			bool epAvailable = OllamaClient.IsAvailableAsync(ep).GetAwaiter().GetResult();
+			bool epAvailable = AiClient.IsAvailableAsync(ep).GetAwaiter().GetResult();
 			if (epAvailable)
 			{
 				Console.WriteLine($"  ✓ {ep}");
@@ -68,7 +69,7 @@ internal sealed class Scan : BaseVerb<Scan>
 
 		if (availableEndpoints.Count == 0)
 		{
-			Console.WriteLine("Error: No Ollama endpoints are available. Make sure Ollama is running and endpoints are correct.");
+			Console.WriteLine($"Error: No {backendLabel} endpoints are available. Make sure the server is running and endpoints are correct.");
 			return;
 		}
 
@@ -198,16 +199,16 @@ internal sealed class Scan : BaseVerb<Scan>
 				if (fileType == FileType.Image)
 				{
 					string fullPrompt = $"Known file paths for this image:\n{pathContext}\n\n{descriptionPrompt.WeakString}";
-					description = OllamaClient.DescribeImageAsync(endpoint, model, fullPrompt, filePath).GetAwaiter().GetResult();
+					description = AiClient.DescribeImageAsync(endpoint, model, fullPrompt, filePath).GetAwaiter().GetResult();
 				}
 				else
 				{
 					string fullPrompt = $"Known file paths for this file:\n{pathContext}\n\n{descriptionPrompt.WeakString}";
-					description = OllamaClient.DescribeTextAsync(endpoint, model, fullPrompt, filePath).GetAwaiter().GetResult();
+					description = AiClient.DescribeTextAsync(endpoint, model, fullPrompt, filePath).GetAwaiter().GetResult();
 				}
 
 				string combinedFileNamePrompt = $"File description: {description}\n\n{fileNamePrompt.WeakString}";
-				string rawSuggestion = OllamaClient.GenerateAsync(endpoint, model, combinedFileNamePrompt).GetAwaiter().GetResult();
+				string rawSuggestion = AiClient.GenerateAsync(endpoint, model, combinedFileNamePrompt).GetAwaiter().GetResult();
 				FileName suggestedFileName = SanitizeFileName(rawSuggestion, filePath.FileExtension);
 
 				requestElapsed = DateTime.UtcNow - requestStart;
