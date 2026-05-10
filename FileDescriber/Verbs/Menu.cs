@@ -2,7 +2,7 @@
 // All rights reserved.
 // Licensed under the MIT license.
 
-namespace ktsu.ImageDescriber.Verbs;
+namespace ktsu.FileDescriber.Verbs;
 
 using System.Diagnostics;
 using System.Linq;

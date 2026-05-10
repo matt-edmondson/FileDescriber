@@ -2,7 +2,7 @@
 // All rights reserved.
 // Licensed under the MIT license.
 
-namespace ktsu.ImageDescriber;
+namespace ktsu.FileDescriber;
 
 using ktsu.Semantics.Strings;
 

@@ -2,7 +2,7 @@
 // All rights reserved.
 // Licensed under the MIT license.
 
-namespace ktsu.ImageDescriber.Verbs;
+namespace ktsu.FileDescriber.Verbs;
 
 using CommandLine;
 
@@ -13,13 +13,13 @@ using ktsu.Semantics.Strings;
 
 internal abstract class BaseVerb : ICommand
 {
-	[Option('p', "path", Required = false, HelpText = "The root path to scan for images.")]
+	[Option('p', "path", Required = false, HelpText = "The root path to scan for files.")]
 	public string PathString { get; set; } = ".";
 
 	[Option('e', "endpoint", Required = false, HelpText = "The Ollama API endpoint URL.")]
 	public string EndpointString { get; set; } = string.Empty;
 
-	[Option('m', "model", Required = false, HelpText = "The Ollama vision model to use.")]
+	[Option('m', "model", Required = false, HelpText = "The Ollama model to use.")]
 	public string ModelString { get; set; } = string.Empty;
 
 	public abstract bool IsActive { get; }

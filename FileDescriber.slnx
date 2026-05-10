@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="FileDescriber/FileDescriber.csproj" />
+  <Project Path="FileDescriber.Test/FileDescriber.Test.csproj" />
+</Solution>

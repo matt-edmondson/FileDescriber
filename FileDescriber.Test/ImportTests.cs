@@ -2,9 +2,9 @@
 // All rights reserved.
 // Licensed under the MIT license.
 
-namespace ktsu.ImageDescriber.Tests;
+namespace ktsu.FileDescriber.Tests;
 
-using ktsu.ImageDescriber.Verbs;
+using ktsu.FileDescriber.Verbs;
 using ktsu.Semantics.Paths;
 using ktsu.Semantics.Strings;
 
@@ -115,11 +115,11 @@ public class ImportTests
 	public void MergeKnownPathsAddsNewPaths()
 	{
 		string tempDir = Path.GetTempPath();
-		ImageDescription source = new()
+		FileDescription source = new()
 		{
 			KnownPaths = [Path.Combine(tempDir, "a.jpg").As<AbsoluteFilePath>(), Path.Combine(tempDir, "b.jpg").As<AbsoluteFilePath>()],
 		};
-		ImageDescription target = new()
+		FileDescription target = new()
 		{
 			KnownPaths = [Path.Combine(tempDir, "a.jpg").As<AbsoluteFilePath>()],
 		};
@@ -134,11 +134,11 @@ public class ImportTests
 	public void MergeKnownPathsReturnsFalseWhenNoNewPaths()
 	{
 		string tempDir = Path.GetTempPath();
-		ImageDescription source = new()
+		FileDescription source = new()
 		{
 			KnownPaths = [Path.Combine(tempDir, "a.jpg").As<AbsoluteFilePath>()],
 		};
-		ImageDescription target = new()
+		FileDescription target = new()
 		{
 			KnownPaths = [Path.Combine(tempDir, "a.jpg").As<AbsoluteFilePath>()],
 		};
@@ -153,11 +153,11 @@ public class ImportTests
 	public void MergeKnownPathsAddsAllFromEmpty()
 	{
 		string tempDir = Path.GetTempPath();
-		ImageDescription source = new()
+		FileDescription source = new()
 		{
 			KnownPaths = [Path.Combine(tempDir, "a.jpg").As<AbsoluteFilePath>(), Path.Combine(tempDir, "b.jpg").As<AbsoluteFilePath>()],
 		};
-		ImageDescription target = new()
+		FileDescription target = new()
 		{
 			KnownPaths = [],
 		};
@@ -172,11 +172,11 @@ public class ImportTests
 	public void MergeKnownPathsReturnsFalseWhenSourceEmpty()
 	{
 		string tempDir = Path.GetTempPath();
-		ImageDescription source = new()
+		FileDescription source = new()
 		{
 			KnownPaths = [],
 		};
-		ImageDescription target = new()
+		FileDescription target = new()
 		{
 			KnownPaths = [Path.Combine(tempDir, "a.jpg").As<AbsoluteFilePath>()],
 		};

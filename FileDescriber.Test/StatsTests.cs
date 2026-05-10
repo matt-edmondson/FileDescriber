@@ -2,9 +2,9 @@
 // All rights reserved.
 // Licensed under the MIT license.
 
-namespace ktsu.ImageDescriber.Tests;
+namespace ktsu.FileDescriber.Tests;
 
-using ktsu.ImageDescriber.Verbs;
+using ktsu.FileDescriber.Verbs;
 
 [TestClass]
 public class StatsTests

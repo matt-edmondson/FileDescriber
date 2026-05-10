@@ -2,7 +2,7 @@
 // All rights reserved.
 // Licensed under the MIT license.
 
-namespace ktsu.ImageDescriber.Verbs;
+namespace ktsu.FileDescriber.Verbs;
 
 using System.Collections.Generic;
 using System.Globalization;
@@ -56,7 +56,7 @@ internal sealed class Import : BaseVerb<Import>
 			return;
 		}
 
-		List<ImageDescription>? entries = LoadEntries(inputFile);
+		List<FileDescription>? entries = LoadEntries(inputFile);
 		if (entries is null)
 		{
 			return;
@@ -73,7 +73,7 @@ internal sealed class Import : BaseVerb<Import>
 		Console.WriteLine($"  Total in database: {Program.Settings.Descriptions.Count}");
 	}
 
-	private static List<ImageDescription>? LoadEntries(AbsoluteFilePath inputFile)
+	private static List<FileDescription>? LoadEntries(AbsoluteFilePath inputFile)
 	{
 		switch (inputFile.FileExtension.WeakString.ToUpperInvariant())
 		{
@@ -87,13 +87,13 @@ internal sealed class Import : BaseVerb<Import>
 		}
 	}
 
-	private static (int NewCount, int UpdatedCount, int SkippedCount) MergeEntries(List<ImageDescription> entries)
+	private static (int NewCount, int UpdatedCount, int SkippedCount) MergeEntries(List<FileDescription> entries)
 	{
 		int newCount = 0;
 		int updatedCount = 0;
 		int skippedCount = 0;
 
-		foreach (ImageDescription entry in entries)
+		foreach (FileDescription entry in entries)
 		{
 			if (string.IsNullOrEmpty(entry.Hash))
 			{
@@ -101,7 +101,7 @@ internal sealed class Import : BaseVerb<Import>
 				continue;
 			}
 
-			if (Program.Settings.Descriptions.TryGetValue(entry.Hash, out ImageDescription? existing))
+			if (Program.Settings.Descriptions.TryGetValue(entry.Hash, out FileDescription? existing))
 			{
 				if (MergeKnownPaths(entry, existing))
 				{
@@ -122,7 +122,7 @@ internal sealed class Import : BaseVerb<Import>
 		return (newCount, updatedCount, skippedCount);
 	}
 
-	internal static bool MergeKnownPaths(ImageDescription source, ImageDescription target)
+	internal static bool MergeKnownPaths(FileDescription source, FileDescription target)
 	{
 		bool pathsAdded = false;
 		foreach (AbsoluteFilePath path in source.KnownPaths.Where(p => !target.KnownPaths.Contains(p)))
@@ -134,15 +134,15 @@ internal sealed class Import : BaseVerb<Import>
 		return pathsAdded;
 	}
 
-	private static List<ImageDescription> ImportJson(AbsoluteFilePath inputPath)
+	private static List<FileDescription> ImportJson(AbsoluteFilePath inputPath)
 	{
 		string json = File.ReadAllText(inputPath.WeakString);
-		return JsonSerializer.Deserialize<List<ImageDescription>>(json, JsonOptions) ?? [];
+		return JsonSerializer.Deserialize<List<FileDescription>>(json, JsonOptions) ?? [];
 	}
 
-	private static List<ImageDescription> ImportCsv(AbsoluteFilePath inputPath)
+	private static List<FileDescription> ImportCsv(AbsoluteFilePath inputPath)
 	{
-		List<ImageDescription> entries = [];
+		List<FileDescription> entries = [];
 		string[] lines = File.ReadAllLines(inputPath.WeakString);
 
 		if (lines.Length < 2)
@@ -163,26 +163,28 @@ internal sealed class Import : BaseVerb<Import>
 			try
 			{
 				List<string> fields = ParseCsvLine(line);
-				if (fields.Count < 7)
+				if (fields.Count < 8)
 				{
 					Console.WriteLine($"  Skipping line {i + 1}: not enough fields.");
 					continue;
 				}
 
-				// Fields: Hash, SuggestedFileName, KnownPaths, Model, DescribedAt, FileSizeBytes, Description
+				// Fields: Hash, FileType, SuggestedFileName, KnownPaths, Model, DescribedAt, FileSizeBytes, Description
 				string hash = fields[0];
-				FileName suggestedFileName = fields[1].As<FileName>();
-				List<AbsoluteFilePath> knownPaths = [.. fields[2]
+				FileType fileType = Enum.TryParse(fields[1], out FileType parsedType) ? parsedType : FileType.Image;
+				FileName suggestedFileName = fields[2].As<FileName>();
+				List<AbsoluteFilePath> knownPaths = [.. fields[3]
 					.Split("; ", StringSplitOptions.RemoveEmptyEntries)
 					.Select(p => p.As<AbsoluteFilePath>())];
-				OllamaModelName model = fields[3].As<OllamaModelName>();
-				DateTime describedAt = DateTime.Parse(fields[4], CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind);
-				long fileSizeBytes = long.Parse(fields[5], CultureInfo.InvariantCulture);
-				string description = fields[6];
+				OllamaModelName model = fields[4].As<OllamaModelName>();
+				DateTime describedAt = DateTime.Parse(fields[5], CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind);
+				long fileSizeBytes = long.Parse(fields[6], CultureInfo.InvariantCulture);
+				string description = fields[7];
 
-				entries.Add(new ImageDescription
+				entries.Add(new FileDescription
 				{
 					Hash = hash,
+					FileType = fileType,
 					SuggestedFileName = suggestedFileName,
 					KnownPaths = knownPaths,
 					Model = model,

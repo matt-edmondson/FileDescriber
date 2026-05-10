@@ -4,16 +4,16 @@
 
 [assembly: CLSCompliant(false)]
 [assembly: System.Runtime.InteropServices.ComVisible(false)]
-[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("ImageDescriber.Test")]
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("FileDescriber.Test")]
 
-namespace ktsu.ImageDescriber;
+namespace ktsu.FileDescriber;
 
 using System.Reflection;
 using System.Text;
 
 using CommandLine;
 
-using ktsu.ImageDescriber.Verbs;
+using ktsu.FileDescriber.Verbs;
 
 internal static class Program
 {

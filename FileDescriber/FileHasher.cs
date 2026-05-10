@@ -2,7 +2,7 @@
 // All rights reserved.
 // Licensed under the MIT license.
 
-namespace ktsu.ImageDescriber;
+namespace ktsu.FileDescriber;
 
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -11,7 +11,7 @@ using System.Security.Cryptography;
 
 using ktsu.Semantics.Paths;
 
-internal static class ImageHasher
+internal static class FileHasher
 {
 	private static readonly Lock ConsoleLock = new();
 

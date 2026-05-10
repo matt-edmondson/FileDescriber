@@ -2,7 +2,7 @@
 // All rights reserved.
 // Licensed under the MIT license.
 
-namespace ktsu.ImageDescriber;
+namespace ktsu.FileDescriber;
 
 using System.IO;
 using System.Net.Http;
@@ -47,6 +47,20 @@ internal static class OllamaClient
 			Model = model,
 			Prompt = prompt,
 			Images = [base64Image],
+			Stream = false,
+		};
+
+		return await SendRequestAsync(endpoint, request).ConfigureAwait(false);
+	}
+
+	internal static async Task<string> DescribeTextAsync(OllamaEndpoint endpoint, OllamaModelName model, string prompt, AbsoluteFilePath textPath)
+	{
+		string fileContent = await File.ReadAllTextAsync(textPath.WeakString).ConfigureAwait(false);
+
+		OllamaRequest request = new()
+		{
+			Model = model,
+			Prompt = $"{prompt}\n\n---\n{fileContent}",
 			Stream = false,
 		};
 
