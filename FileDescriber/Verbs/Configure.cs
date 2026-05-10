@@ -4,6 +4,8 @@
 
 namespace ktsu.FileDescriber.Verbs;
 
+using System;
+
 using CommandLine;
 
 using ktsu.Semantics.Strings;
@@ -13,15 +15,9 @@ internal sealed class Configure : BaseVerb<Configure>
 {
 	internal override void Run(Configure options)
 	{
-		Console.WriteLine("Current Settings:");
-		Console.WriteLine($"  Endpoint:             {Program.Settings.OllamaEndpoint}");
-		Console.WriteLine($"  Model:                {Program.Settings.OllamaModel}");
-		Console.WriteLine($"  Concurrency:          {Program.Settings.MaxConcurrentRequests}");
-		Console.WriteLine($"  Image Prompt:         {Program.Settings.DescriptionPrompt[..Math.Min(60, Program.Settings.DescriptionPrompt.Length)]}...");
-		Console.WriteLine($"  Text Prompt:          {Program.Settings.TextDescriptionPrompt[..Math.Min(60, Program.Settings.TextDescriptionPrompt.Length)]}...");
-		Console.WriteLine($"  Filename Prompt:      {Program.Settings.SuggestedFileNamePrompt[..Math.Min(60, Program.Settings.SuggestedFileNamePrompt.Length)]}...");
-		Console.WriteLine();
+		PrintSettings();
 
+		// --- Endpoint / model / concurrency ---
 		Console.Write($"Ollama Endpoint [{Program.Settings.OllamaEndpoint}]: ");
 		string? endpointInput = Console.ReadLine();
 		if (!string.IsNullOrWhiteSpace(endpointInput))
@@ -38,41 +34,68 @@ internal sealed class Configure : BaseVerb<Configure>
 
 		Console.Write($"Max Concurrent Requests [{Program.Settings.MaxConcurrentRequests}]: ");
 		string? concurrencyInput = Console.ReadLine();
-		if (!string.IsNullOrWhiteSpace(concurrencyInput) && int.TryParse(concurrencyInput.Trim(), out int concurrency) && concurrency >= 1)
+		if (!string.IsNullOrWhiteSpace(concurrencyInput) &&
+			int.TryParse(concurrencyInput.Trim(), out int concurrency) &&
+			concurrency >= 1)
 		{
 			Program.Settings.MaxConcurrentRequests = concurrency;
 		}
 
-		Console.Write($"Image Description Prompt [{Program.Settings.DescriptionPrompt[..Math.Min(60, Program.Settings.DescriptionPrompt.Length)]}...]: ");
-		string? promptInput = Console.ReadLine();
-		if (!string.IsNullOrWhiteSpace(promptInput))
+		// --- Per-model, per-type prompts for the current model ---
+		OllamaModelName currentModel = Program.Settings.OllamaModel;
+		Console.WriteLine();
+		Console.WriteLine($"Description prompts for model '{currentModel}'");
+		Console.WriteLine("(Press Enter to keep the current value. Effective value shown in brackets.)");
+		Console.WriteLine();
+
+		foreach (FileType fileType in Enum.GetValues<FileType>())
 		{
-			Program.Settings.DescriptionPrompt = promptInput.Trim();
+			string effective = Program.Settings.GetDescriptionPrompt(currentModel, fileType);
+			string preview = effective[..Math.Min(60, effective.Length)];
+			Console.Write($"  {fileType} [{preview}...]: ");
+			string? input = Console.ReadLine();
+			if (!string.IsNullOrWhiteSpace(input))
+			{
+				Program.Settings.SetDescriptionPrompt(currentModel, fileType, input.Trim());
+			}
 		}
 
-		Console.Write($"Text Description Prompt [{Program.Settings.TextDescriptionPrompt[..Math.Min(60, Program.Settings.TextDescriptionPrompt.Length)]}...]: ");
-		string? textPromptInput = Console.ReadLine();
-		if (!string.IsNullOrWhiteSpace(textPromptInput))
+		Console.WriteLine();
+		string effectiveFileName = Program.Settings.GetFileNamePrompt(currentModel);
+		string fileNamePreview = effectiveFileName[..Math.Min(60, effectiveFileName.Length)];
+		Console.Write($"Filename prompt for '{currentModel}' [{fileNamePreview}...]: ");
+		string? fileNameInput = Console.ReadLine();
+		if (!string.IsNullOrWhiteSpace(fileNameInput))
 		{
-			Program.Settings.TextDescriptionPrompt = textPromptInput.Trim();
-		}
-
-		Console.Write($"Filename Prompt [{Program.Settings.SuggestedFileNamePrompt[..Math.Min(60, Program.Settings.SuggestedFileNamePrompt.Length)]}...]: ");
-		string? fileNamePromptInput = Console.ReadLine();
-		if (!string.IsNullOrWhiteSpace(fileNamePromptInput))
-		{
-			Program.Settings.SuggestedFileNamePrompt = fileNamePromptInput.Trim();
+			Program.Settings.SetFileNamePrompt(currentModel, fileNameInput.Trim());
 		}
 
 		Program.Settings.Save();
 
 		Console.WriteLine();
 		Console.WriteLine("Settings saved.");
-		Console.WriteLine($"  Endpoint:             {Program.Settings.OllamaEndpoint}");
-		Console.WriteLine($"  Model:                {Program.Settings.OllamaModel}");
-		Console.WriteLine($"  Concurrency:          {Program.Settings.MaxConcurrentRequests}");
-		Console.WriteLine($"  Image Prompt:         {Program.Settings.DescriptionPrompt[..Math.Min(60, Program.Settings.DescriptionPrompt.Length)]}...");
-		Console.WriteLine($"  Text Prompt:          {Program.Settings.TextDescriptionPrompt[..Math.Min(60, Program.Settings.TextDescriptionPrompt.Length)]}...");
-		Console.WriteLine($"  Filename Prompt:      {Program.Settings.SuggestedFileNamePrompt[..Math.Min(60, Program.Settings.SuggestedFileNamePrompt.Length)]}...");
+		PrintSettings();
+	}
+
+	private static void PrintSettings()
+	{
+		OllamaModelName model = Program.Settings.OllamaModel;
+
+		Console.WriteLine("Current Settings:");
+		Console.WriteLine($"  Endpoint:        {Program.Settings.OllamaEndpoint}");
+		Console.WriteLine($"  Model:           {model}");
+		Console.WriteLine($"  Concurrency:     {Program.Settings.MaxConcurrentRequests}");
+		Console.WriteLine();
+		Console.WriteLine($"  Prompts for '{model}':");
+
+		foreach (FileType fileType in Enum.GetValues<FileType>())
+		{
+			string effective = Program.Settings.GetDescriptionPrompt(model, fileType);
+			Console.WriteLine($"    {fileType}: {effective[..Math.Min(60, effective.Length)]}...");
+		}
+
+		string fileNamePrompt = Program.Settings.GetFileNamePrompt(model);
+		Console.WriteLine($"    Filename: {fileNamePrompt[..Math.Min(60, fileNamePrompt.Length)]}...");
+		Console.WriteLine();
 	}
 }
